@@ -83,6 +83,9 @@ describe('SLD coordinates cleaner menu', () => {
     }
     expect(removeButton().disabled).to.equal(true);
     expect(element.shadowRoot?.querySelectorAll('oscd-checkbox')).to.have.lengthOf(3);
+    const labels = Array.from(element.shadowRoot?.querySelectorAll('label') ?? [])
+      .map(label => label.textContent?.trim());
+    expect(labels).to.deep.equal(['SLDv1', 'SLD Private', 'SXY']);
   });
 
   it('removes only selected data in one undoable transaction', async () => {

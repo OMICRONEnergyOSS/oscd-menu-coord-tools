@@ -46,6 +46,10 @@
       "types": "./dist/oscd-menu-copy-sldv1-sldpriv.d.ts",
       "default": "./dist/oscd-menu-copy-sldv1-sldpriv.js"
     },
+    "./oscd-menu-copy-sldpriv-sldv1.js": {
+      "types": "./dist/oscd-menu-copy-sldpriv-sldv1.d.ts",
+      "default": "./dist/oscd-menu-copy-sldpriv-sldv1.js"
+    },
     "./oscd-menu-sld-coords-cleaner.js": {
       "types": "./dist/oscd-menu-sld-coords-cleaner.d.ts",
       "default": "./dist/oscd-menu-sld-coords-cleaner.js"

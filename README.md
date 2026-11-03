@@ -32,23 +32,78 @@ unusual transformer decorations can require manual adjustment.
 
 ## Coordinate tools
 
-Two additional, independent menu plugins are included. They do not automatically
+Three additional, independent menu plugins are included. They do not automatically
 synchronize competing coordinate systems or change auto-layout behavior.
 
 | Plugin | Package export / browser bundle |
 | --- | --- |
 | SLD positioner | `oscd-menu-sld-positioner.js` |
 | Copy SLDv1 to SLD Private | `oscd-menu-copy-sldv1-sldpriv.js` |
+| Copy SLD Private to SLDv1 | `oscd-menu-copy-sldpriv-sldv1.js` |
 | SLD Coords cleaner | `oscd-menu-sld-coords-cleaner.js` |
 
-The copier retains all Transpower SLDv1 source data, including legacy linked
-IED placements and connectivity vertices. One unchecked checkbox controls
-**all** conflicts: leave it unchecked to skip every existing destination layout
-record, or check it to overwrite every matching record. Destination-only
-attributes are retained; overwritten connectivity paths are replaced as a set.
-The dialog reports the number of conflicting records, not individual attributes.
+Both copiers retain all source data, including IED placements and connectivity
+vertices. A direction-specific introduction explains the older SLDv1 layout
+format and the current editor's SLD Private format. Check **Don't show
+this introduction again** and submit to suppress it for that plugin in this
+browser. The preference uses oscd-ui's `@localstorage` decorator keyed by the
+plugin ID; the two directions have independent preferences.
+
+If the selected source format has no coordinates, or all destination layouts
+already match, a short dialog with **Close** is always shown instead. It explains
+which case applies, has no introduction, counts, copy actions, preference
+checkbox, or snackbar, and does not change the saved preference. When shown, the introduction
+checkbox is last in the dialog content, just above the footer.
+
+Differing destination layouts always prompt for **Skip existing** or
+**Overwrite existing**, with Cancel available. Skip still copies missing
+destinations. Neither choice is remembered. Matching destinations do not count
+as conflicts, even if they contain additional scalar fields that will be
+retained. Overwritten connectivity paths are replaced as a complete set.
+Counts refer to layout records, not individual SCL elements or attributes;
+each connectivity path set counts as one record.
+After submitting, the dialog closes. A nonmodal snackbar reports actual copies,
+including how many conflicts were skipped alongside them. Skipping everything
+closes silently; no snackbar is shown without document edits.
+With the introduction suppressed, conflict-free copies
+run directly. Blocking diagnostics and document-specific precedence notes
+remain visible in the dialog.
+The Text compatibility warning appears separately when importing Text layout
+that does not already match its destination; it is not generic onboarding.
 Ambiguous IED placements, duplicate destinations, and unsupported source data
 block the operation with an explanation instead of guessing or partially copying.
+
+The reverse copier exports plant layout fields as Transpower-namespaced
+attributes on their original SCL owners. IED references become
+`OpenSCD-Linked-IEDs/IEDName` entries in the same Substation, VoltageLevel, or
+Bay, rather than being repositioned. Existing root-IED coordinates are reused
+only for an unambiguous matching placement in the document's sole Substation;
+competing direct/linked placements block copying. Connectivity paths become
+`Transpower-SLD-Vertices` sections, with the legacy unqualified `bus` flag.
+Coordinate values, label positions, rotation, styling, and terminal/vertex UUIDs
+are copied without numerical conversion. Unsupported SLD layout fields or
+structures block export; unrelated source vendor metadata remains in the source.
+
+When an IED has both an older `OpenSCD-Coords/Coords` record and a scoped
+`OpenSCD-Linked-IEDs` placement, import uses the linked placement and retains
+the older record unchanged. The dialog reports this precedence choice.
+Standalone Coords records without a linked placement still require an explicit
+destination; the copier does not guess their scope.
+
+Text annotations are supported in both directions, including their coordinates,
+rotation, color, and font weight; their text content is retained.
+**Temporary schema exception:** to match the current SLD editor, text layout
+uses `Text > Private[type="OpenSCD-SLD-Layout"] > SLDAttributes`. An SCL `Private`
+child inside `Text` violates the SCL schema. This owner-approved compatibility
+exception must be corrected once the representation is settled in
+[openscd/oscd-extensions#5](https://github.com/openscd/oscd-extensions/issues/5).
+
+SLDv1 and SLD Private are separate menu actions with fixed directions. Copies
+are not synchronization: destination-only records remain, and changing one
+representation does not update the other. The current SLD editor prompts for
+migration when SLDv1 is present, even if SLD Private data also exists. To inspect
+Private data without migrating a retained SLDv1 copy, use the cleaner to remove
+SLDv1 explicitly from a working copy.
 
 The cleaner detects SLDv1, SLD Private, and IEC SXY data by namespace URI.
 Detected systems are enabled but initially unchecked. Selecting every detected
@@ -63,7 +118,7 @@ declarations are removed, but declarations referenced by QName metadata remain.
 
 Each operation is one undoable EditV2 transaction. A changed document or
 `docVersion` invalidates an open confirmation; close and reopen the plugin.
-Reverse copying and SXY conversion are not implemented.
+SXY is supported by detection and cleanup only; SXY conversion is not implemented.
 
 Register the additional plugins in the host's scoped registry just like
 auto-layout, using their default class exports:
@@ -71,15 +126,18 @@ auto-layout, using their default class exports:
 ```js
 import OscdMenuCopySldv1Sldpriv from
   '@omicronenergy/oscd-menu-coord-tools/oscd-menu-copy-sldv1-sldpriv.js';
+import OscdMenuCopySldprivSldv1 from
+  '@omicronenergy/oscd-menu-coord-tools/oscd-menu-copy-sldpriv-sldv1.js';
 import OscdMenuSldCoordsCleaner from
   '@omicronenergy/oscd-menu-coord-tools/oscd-menu-sld-coords-cleaner.js';
 
 shell.registry.define('oscd-menu-copy-sldv1-sldpriv', OscdMenuCopySldv1Sldpriv);
+shell.registry.define('oscd-menu-copy-sldpriv-sldv1', OscdMenuCopySldprivSldv1);
 shell.registry.define('oscd-menu-sld-coords-cleaner', OscdMenuSldCoordsCleaner);
 ```
 
 Add corresponding menu entries with `requireDoc: true` and these `tagName`
-values. Both are already registered in the demo.
+values. All are already registered in the demo.
 
 ## Install
 
@@ -162,9 +220,9 @@ also includes the compatible SLD editor.
 excludes demo output, tests, snapshots, and source maps. Build before manual
 publication and inspect contents with `npm pack --dry-run`.
 
-`npm run bundle` produces three independent, single-file plugin bundles and
+`npm run bundle` produces four independent, single-file plugin bundles and
 the static demo under `dist`. The thin local Rollup config extends the shared
-configuration only to add the two entry points.
+configuration only to add the coordinate-tool entry points.
 `npm run deploy` bundles first, then publishes the output to the `deploy`
 branch of the configured Git remote. This command writes to
 the remote and should only be run intentionally against the canonical repo.
