@@ -26353,7 +26353,6 @@ class OscdMenuSldCoordsCleaner extends ScopedElementsMixin(i$1) {
               @change=${(event) => this.handleSelection(system, event)}
             ></oscd-checkbox>
             ${system === 'sldv1' ? msg('SLDv1') : system === 'sldpriv' ? msg('SLD Private') : msg('SXY')}
-            (${this.counts[system]})
           </label>
         `)}
         ${this.removesAll() && this.result === '' ? b `

@@ -49,6 +49,12 @@ export const plugins = {
       tagName: 'oscd-menu-copy-sldv1-sldpriv',
     },
     {
+      name: 'Copy SLD Private to SLDv1',
+      icon: 'content_copy',
+      requireDoc: true,
+      tagName: 'oscd-menu-copy-sldpriv-sldv1',
+    },
+    {
       name: 'SLD Coords cleaner',
       icon: 'delete_sweep',
       requireDoc: true,

@@ -12,6 +12,10 @@ export declare function cleanCoordinatePlan(doc: XMLDocument, systems: readonly 
 export type CopyPlan = CoordinatePlan & {
     conflicts: number;
     copied: number;
+    unchanged: number;
+    notes: string[];
 };
 /** Copies into detached layout sections, so planning cannot change the live document. */
 export declare function copySldV1Plan(doc: XMLDocument, overwrite?: boolean): CopyPlan;
+/** Exports existing geometry without repositioning elements or removing source data. */
+export declare function copySldPrivatePlan(doc: XMLDocument, overwrite?: boolean): CopyPlan;

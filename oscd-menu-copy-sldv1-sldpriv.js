@@ -27,6 +27,226 @@ typeof SuppressedError === "function" ? SuppressedError : function (error, suppr
     return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
 };
 
+const appliedClassMixins = new WeakMap();
+
+/** Vefify if the Mixin was previously applyed
+ * @private
+ * @param {function} mixin      Mixin being applyed
+ * @param {object} superClass   Class receiving the new mixin
+ * @returns {boolean}
+ */
+function wasMixinPreviouslyApplied(mixin, superClass) {
+  let klass = superClass;
+  while (klass) {
+    if (appliedClassMixins.get(klass) === mixin) {
+      return true;
+    }
+    klass = Object.getPrototypeOf(klass);
+  }
+  return false;
+}
+
+/** Apply each mixin in the chain to make sure they are not applied more than once to the final class.
+ * @export
+ * @param {function} mixin      Mixin to be applyed
+ * @returns {object}            Mixed class with mixin applied
+ */
+function dedupeMixin(mixin) {
+  return superClass => {
+    if (wasMixinPreviouslyApplied(mixin, superClass)) {
+      return superClass;
+    }
+    const mixedClass = mixin(superClass);
+    appliedClassMixins.set(mixedClass, mixin);
+    return mixedClass;
+  };
+}
+
+/**
+ * @license
+ * Copyright 2019 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+const t$2=globalThis,e$6=t$2.ShadowRoot&&(void 0===t$2.ShadyCSS||t$2.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,s$2=Symbol(),o$6=new WeakMap;let n$4 = class n{constructor(t,e,o){if(this._$cssResult$=true,o!==s$2)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=t,this.t=e;}get styleSheet(){let t=this.o;const s=this.t;if(e$6&&void 0===t){const e=void 0!==s&&1===s.length;e&&(t=o$6.get(s)),void 0===t&&((this.o=t=new CSSStyleSheet).replaceSync(this.cssText),e&&o$6.set(s,t));}return t}toString(){return this.cssText}};const r$4=t=>new n$4("string"==typeof t?t:t+"",void 0,s$2),i$5=(t,...e)=>{const o=1===t.length?t[0]:e.reduce((e,s,o)=>e+(t=>{if(true===t._$cssResult$)return t.cssText;if("number"==typeof t)return t;throw Error("Value passed to 'css' function must be a 'css' function result: "+t+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(s)+t[o+1],t[0]);return new n$4(o,t,s$2)},S$1=(s,o)=>{if(e$6)s.adoptedStyleSheets=o.map(t=>t instanceof CSSStyleSheet?t:t.styleSheet);else for(const e of o){const o=document.createElement("style"),n=t$2.litNonce;void 0!==n&&o.setAttribute("nonce",n),o.textContent=e.cssText,s.appendChild(o);}},c$2=e$6?t=>t:t=>t instanceof CSSStyleSheet?(t=>{let e="";for(const s of t.cssRules)e+=s.cssText;return r$4(e)})(t):t;
+
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */const{is:i$4,defineProperty:e$5,getOwnPropertyDescriptor:h$1,getOwnPropertyNames:r$3,getOwnPropertySymbols:o$5,getPrototypeOf:n$3}=Object,a$2=globalThis,c$1=a$2.trustedTypes,l$2=c$1?c$1.emptyScript:"",p$1=a$2.reactiveElementPolyfillSupport,d$1=(t,s)=>t,u$2={toAttribute(t,s){switch(s){case Boolean:t=t?l$2:null;break;case Object:case Array:t=null==t?t:JSON.stringify(t);}return t},fromAttribute(t,s){let i=t;switch(s){case Boolean:i=null!==t;break;case Number:i=null===t?null:Number(t);break;case Object:case Array:try{i=JSON.parse(t);}catch(t){i=null;}}return i}},f$1=(t,s)=>!i$4(t,s),b$1={attribute:true,type:String,converter:u$2,reflect:false,useDefault:false,hasChanged:f$1};Symbol.metadata??=Symbol("metadata"),a$2.litPropertyMetadata??=new WeakMap;let y$1 = class y extends HTMLElement{static addInitializer(t){this._$Ei(),(this.l??=[]).push(t);}static get observedAttributes(){return this.finalize(),this._$Eh&&[...this._$Eh.keys()]}static createProperty(t,s=b$1){if(s.state&&(s.attribute=false),this._$Ei(),this.prototype.hasOwnProperty(t)&&((s=Object.create(s)).wrapped=true),this.elementProperties.set(t,s),!s.noAccessor){const i=Symbol(),h=this.getPropertyDescriptor(t,i,s);void 0!==h&&e$5(this.prototype,t,h);}}static getPropertyDescriptor(t,s,i){const{get:e,set:r}=h$1(this.prototype,t)??{get(){return this[s]},set(t){this[s]=t;}};return {get:e,set(s){const h=e?.call(this);r?.call(this,s),this.requestUpdate(t,h,i);},configurable:true,enumerable:true}}static getPropertyOptions(t){return this.elementProperties.get(t)??b$1}static _$Ei(){if(this.hasOwnProperty(d$1("elementProperties")))return;const t=n$3(this);t.finalize(),void 0!==t.l&&(this.l=[...t.l]),this.elementProperties=new Map(t.elementProperties);}static finalize(){if(this.hasOwnProperty(d$1("finalized")))return;if(this.finalized=true,this._$Ei(),this.hasOwnProperty(d$1("properties"))){const t=this.properties,s=[...r$3(t),...o$5(t)];for(const i of s)this.createProperty(i,t[i]);}const t=this[Symbol.metadata];if(null!==t){const s=litPropertyMetadata.get(t);if(void 0!==s)for(const[t,i]of s)this.elementProperties.set(t,i);}this._$Eh=new Map;for(const[t,s]of this.elementProperties){const i=this._$Eu(t,s);void 0!==i&&this._$Eh.set(i,t);}this.elementStyles=this.finalizeStyles(this.styles);}static finalizeStyles(s){const i=[];if(Array.isArray(s)){const e=new Set(s.flat(1/0).reverse());for(const s of e)i.unshift(c$2(s));}else void 0!==s&&i.push(c$2(s));return i}static _$Eu(t,s){const i=s.attribute;return  false===i?void 0:"string"==typeof i?i:"string"==typeof t?t.toLowerCase():void 0}constructor(){super(),this._$Ep=void 0,this.isUpdatePending=false,this.hasUpdated=false,this._$Em=null,this._$Ev();}_$Ev(){this._$ES=new Promise(t=>this.enableUpdating=t),this._$AL=new Map,this._$E_(),this.requestUpdate(),this.constructor.l?.forEach(t=>t(this));}addController(t){(this._$EO??=new Set).add(t),void 0!==this.renderRoot&&this.isConnected&&t.hostConnected?.();}removeController(t){this._$EO?.delete(t);}_$E_(){const t=new Map,s=this.constructor.elementProperties;for(const i of s.keys())this.hasOwnProperty(i)&&(t.set(i,this[i]),delete this[i]);t.size>0&&(this._$Ep=t);}createRenderRoot(){const t=this.shadowRoot??this.attachShadow(this.constructor.shadowRootOptions);return S$1(t,this.constructor.elementStyles),t}connectedCallback(){this.renderRoot??=this.createRenderRoot(),this.enableUpdating(true),this._$EO?.forEach(t=>t.hostConnected?.());}enableUpdating(t){}disconnectedCallback(){this._$EO?.forEach(t=>t.hostDisconnected?.());}attributeChangedCallback(t,s,i){this._$AK(t,i);}_$ET(t,s){const i=this.constructor.elementProperties.get(t),e=this.constructor._$Eu(t,i);if(void 0!==e&&true===i.reflect){const h=(void 0!==i.converter?.toAttribute?i.converter:u$2).toAttribute(s,i.type);this._$Em=t,null==h?this.removeAttribute(e):this.setAttribute(e,h),this._$Em=null;}}_$AK(t,s){const i=this.constructor,e=i._$Eh.get(t);if(void 0!==e&&this._$Em!==e){const t=i.getPropertyOptions(e),h="function"==typeof t.converter?{fromAttribute:t.converter}:void 0!==t.converter?.fromAttribute?t.converter:u$2;this._$Em=e;const r=h.fromAttribute(s,t.type);this[e]=r??this._$Ej?.get(e)??r,this._$Em=null;}}requestUpdate(t,s,i,e=false,h){if(void 0!==t){const r=this.constructor;if(false===e&&(h=this[t]),i??=r.getPropertyOptions(t),!((i.hasChanged??f$1)(h,s)||i.useDefault&&i.reflect&&h===this._$Ej?.get(t)&&!this.hasAttribute(r._$Eu(t,i))))return;this.C(t,s,i);} false===this.isUpdatePending&&(this._$ES=this._$EP());}C(t,s,{useDefault:i,reflect:e,wrapped:h},r){i&&!(this._$Ej??=new Map).has(t)&&(this._$Ej.set(t,r??s??this[t]),true!==h||void 0!==r)||(this._$AL.has(t)||(this.hasUpdated||i||(s=void 0),this._$AL.set(t,s)),true===e&&this._$Em!==t&&(this._$Eq??=new Set).add(t));}async _$EP(){this.isUpdatePending=true;try{await this._$ES;}catch(t){Promise.reject(t);}const t=this.scheduleUpdate();return null!=t&&await t,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){if(!this.isUpdatePending)return;if(!this.hasUpdated){if(this.renderRoot??=this.createRenderRoot(),this._$Ep){for(const[t,s]of this._$Ep)this[t]=s;this._$Ep=void 0;}const t=this.constructor.elementProperties;if(t.size>0)for(const[s,i]of t){const{wrapped:t}=i,e=this[s];true!==t||this._$AL.has(s)||void 0===e||this.C(s,void 0,i,e);}}let t=false;const s=this._$AL;try{t=this.shouldUpdate(s),t?(this.willUpdate(s),this._$EO?.forEach(t=>t.hostUpdate?.()),this.update(s)):this._$EM();}catch(s){throw t=false,this._$EM(),s}t&&this._$AE(s);}willUpdate(t){}_$AE(t){this._$EO?.forEach(t=>t.hostUpdated?.()),this.hasUpdated||(this.hasUpdated=true,this.firstUpdated(t)),this.updated(t);}_$EM(){this._$AL=new Map,this.isUpdatePending=false;}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$ES}shouldUpdate(t){return  true}update(t){this._$Eq&&=this._$Eq.forEach(t=>this._$ET(t,this[t])),this._$EM();}updated(t){}firstUpdated(t){}};y$1.elementStyles=[],y$1.shadowRootOptions={mode:"open"},y$1[d$1("elementProperties")]=new Map,y$1[d$1("finalized")]=new Map,p$1?.({ReactiveElement:y$1}),(a$2.reactiveElementVersions??=[]).push("2.1.2");
+
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+const t$1=globalThis,i$3=t=>t,s$1=t$1.trustedTypes,e$4=s$1?s$1.createPolicy("lit-html",{createHTML:t=>t}):void 0,h="$lit$",o$4=`lit$${Math.random().toFixed(9).slice(2)}$`,n$2="?"+o$4,r$2=`<${n$2}>`,l$1=document,c=()=>l$1.createComment(""),a$1=t=>null===t||"object"!=typeof t&&"function"!=typeof t,u$1=Array.isArray,d=t=>u$1(t)||"function"==typeof t?.[Symbol.iterator],f="[ \t\n\f\r]",v=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,_=/-->/g,m=/>/g,p=RegExp(`>|${f}(?:([^\\s"'>=/]+)(${f}*=${f}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,"g"),g=/'/g,$=/"/g,y=/^(?:script|style|textarea|title)$/i,x=t=>(i,...s)=>({_$litType$:t,strings:i,values:s}),b=x(1),w=x(2),E=Symbol.for("lit-noChange"),A=Symbol.for("lit-nothing"),C=new WeakMap,P=l$1.createTreeWalker(l$1,129);function V(t,i){if(!u$1(t)||!t.hasOwnProperty("raw"))throw Error("invalid template strings array");return void 0!==e$4?e$4.createHTML(i):i}const N=(t,i)=>{const s=t.length-1,e=[];let n,l=2===i?"<svg>":3===i?"<math>":"",c=v;for(let i=0;i<s;i++){const s=t[i];let a,u,d=-1,f=0;for(;f<s.length&&(c.lastIndex=f,u=c.exec(s),null!==u);)f=c.lastIndex,c===v?"!--"===u[1]?c=_:void 0!==u[1]?c=m:void 0!==u[2]?(y.test(u[2])&&(n=RegExp("</"+u[2],"g")),c=p):void 0!==u[3]&&(c=p):c===p?">"===u[0]?(c=n??v,d=-1):void 0===u[1]?d=-2:(d=c.lastIndex-u[2].length,a=u[1],c=void 0===u[3]?p:'"'===u[3]?$:g):c===$||c===g?c=p:c===_||c===m?c=v:(c=p,n=void 0);const x=c===p&&t[i+1].startsWith("/>")?" ":"";l+=c===v?s+r$2:d>=0?(e.push(a),s.slice(0,d)+h+s.slice(d)+o$4+x):s+o$4+(-2===d?i:x);}return [V(t,l+(t[s]||"<?>")+(2===i?"</svg>":3===i?"</math>":"")),e]};class S{constructor({strings:t,_$litType$:i},e){let r;this.parts=[];let l=0,a=0;const u=t.length-1,d=this.parts,[f,v]=N(t,i);if(this.el=S.createElement(f,e),P.currentNode=this.el.content,2===i||3===i){const t=this.el.content.firstChild;t.replaceWith(...t.childNodes);}for(;null!==(r=P.nextNode())&&d.length<u;){if(1===r.nodeType){if(r.hasAttributes())for(const t of r.getAttributeNames())if(t.endsWith(h)){const i=v[a++],s=r.getAttribute(t).split(o$4),e=/([.?@])?(.*)/.exec(i);d.push({type:1,index:l,name:e[2],strings:s,ctor:"."===e[1]?I:"?"===e[1]?L:"@"===e[1]?z:H}),r.removeAttribute(t);}else t.startsWith(o$4)&&(d.push({type:6,index:l}),r.removeAttribute(t));if(y.test(r.tagName)){const t=r.textContent.split(o$4),i=t.length-1;if(i>0){r.textContent=s$1?s$1.emptyScript:"";for(let s=0;s<i;s++)r.append(t[s],c()),P.nextNode(),d.push({type:2,index:++l});r.append(t[i],c());}}}else if(8===r.nodeType)if(r.data===n$2)d.push({type:2,index:l});else {let t=-1;for(;-1!==(t=r.data.indexOf(o$4,t+1));)d.push({type:7,index:l}),t+=o$4.length-1;}l++;}}static createElement(t,i){const s=l$1.createElement("template");return s.innerHTML=t,s}}function M(t,i,s=t,e){if(i===E)return i;let h=void 0!==e?s._$Co?.[e]:s._$Cl;const o=a$1(i)?void 0:i._$litDirective$;return h?.constructor!==o&&(h?._$AO?.(false),void 0===o?h=void 0:(h=new o(t),h._$AT(t,s,e)),void 0!==e?(s._$Co??=[])[e]=h:s._$Cl=h),void 0!==h&&(i=M(t,h._$AS(t,i.values),h,e)),i}class R{constructor(t,i){this._$AV=[],this._$AN=void 0,this._$AD=t,this._$AM=i;}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(t){const{el:{content:i},parts:s}=this._$AD,e=(t?.creationScope??l$1).importNode(i,true);P.currentNode=e;let h=P.nextNode(),o=0,n=0,r=s[0];for(;void 0!==r;){if(o===r.index){let i;2===r.type?i=new k(h,h.nextSibling,this,t):1===r.type?i=new r.ctor(h,r.name,r.strings,this,t):6===r.type&&(i=new Z(h,this,t)),this._$AV.push(i),r=s[++n];}o!==r?.index&&(h=P.nextNode(),o++);}return P.currentNode=l$1,e}p(t){let i=0;for(const s of this._$AV) void 0!==s&&(void 0!==s.strings?(s._$AI(t,s,i),i+=s.strings.length-2):s._$AI(t[i])),i++;}}class k{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(t,i,s,e){this.type=2,this._$AH=A,this._$AN=void 0,this._$AA=t,this._$AB=i,this._$AM=s,this.options=e,this._$Cv=e?.isConnected??true;}get parentNode(){let t=this._$AA.parentNode;const i=this._$AM;return void 0!==i&&11===t?.nodeType&&(t=i.parentNode),t}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(t,i=this){t=M(this,t,i),a$1(t)?t===A||null==t||""===t?(this._$AH!==A&&this._$AR(),this._$AH=A):t!==this._$AH&&t!==E&&this._(t):void 0!==t._$litType$?this.$(t):void 0!==t.nodeType?this.T(t):d(t)?this.k(t):this._(t);}O(t){return this._$AA.parentNode.insertBefore(t,this._$AB)}T(t){this._$AH!==t&&(this._$AR(),this._$AH=this.O(t));}_(t){this._$AH!==A&&a$1(this._$AH)?this._$AA.nextSibling.data=t:this.T(l$1.createTextNode(t)),this._$AH=t;}$(t){const{values:i,_$litType$:s}=t,e="number"==typeof s?this._$AC(t):(void 0===s.el&&(s.el=S.createElement(V(s.h,s.h[0]),this.options)),s);if(this._$AH?._$AD===e)this._$AH.p(i);else {const t=new R(e,this),s=t.u(this.options);t.p(i),this.T(s),this._$AH=t;}}_$AC(t){let i=C.get(t.strings);return void 0===i&&C.set(t.strings,i=new S(t)),i}k(t){u$1(this._$AH)||(this._$AH=[],this._$AR());const i=this._$AH;let s,e=0;for(const h of t)e===i.length?i.push(s=new k(this.O(c()),this.O(c()),this,this.options)):s=i[e],s._$AI(h),e++;e<i.length&&(this._$AR(s&&s._$AB.nextSibling,e),i.length=e);}_$AR(t=this._$AA.nextSibling,s){for(this._$AP?.(false,true,s);t!==this._$AB;){const s=i$3(t).nextSibling;i$3(t).remove(),t=s;}}setConnected(t){ void 0===this._$AM&&(this._$Cv=t,this._$AP?.(t));}}class H{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(t,i,s,e,h){this.type=1,this._$AH=A,this._$AN=void 0,this.element=t,this.name=i,this._$AM=e,this.options=h,s.length>2||""!==s[0]||""!==s[1]?(this._$AH=Array(s.length-1).fill(new String),this.strings=s):this._$AH=A;}_$AI(t,i=this,s,e){const h=this.strings;let o=false;if(void 0===h)t=M(this,t,i,0),o=!a$1(t)||t!==this._$AH&&t!==E,o&&(this._$AH=t);else {const e=t;let n,r;for(t=h[0],n=0;n<h.length-1;n++)r=M(this,e[s+n],i,n),r===E&&(r=this._$AH[n]),o||=!a$1(r)||r!==this._$AH[n],r===A?t=A:t!==A&&(t+=(r??"")+h[n+1]),this._$AH[n]=r;}o&&!e&&this.j(t);}j(t){t===A?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,t??"");}}class I extends H{constructor(){super(...arguments),this.type=3;}j(t){this.element[this.name]=t===A?void 0:t;}}class L extends H{constructor(){super(...arguments),this.type=4;}j(t){this.element.toggleAttribute(this.name,!!t&&t!==A);}}class z extends H{constructor(t,i,s,e,h){super(t,i,s,e,h),this.type=5;}_$AI(t,i=this){if((t=M(this,t,i,0)??A)===E)return;const s=this._$AH,e=t===A&&s!==A||t.capture!==s.capture||t.once!==s.once||t.passive!==s.passive,h=t!==A&&(s===A||e);e&&this.element.removeEventListener(this.name,this,s),h&&this.element.addEventListener(this.name,this,t),this._$AH=t;}handleEvent(t){"function"==typeof this._$AH?this._$AH.call(this.options?.host??this.element,t):this._$AH.handleEvent(t);}}class Z{constructor(t,i,s){this.element=t,this.type=6,this._$AN=void 0,this._$AM=i,this.options=s;}get _$AU(){return this._$AM._$AU}_$AI(t){M(this,t);}}const B=t$1.litHtmlPolyfillSupport;B?.(S,k),(t$1.litHtmlVersions??=[]).push("3.3.3");const D=(t,i,s)=>{const e=s?.renderBefore??i;let h=e._$litPart$;if(void 0===h){const t=s?.renderBefore??null;e._$litPart$=h=new k(i.insertBefore(c(),t),t,void 0,s??{});}return h._$AI(t),h};
+
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */const s=globalThis;let i$2 = class i extends y$1{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0;}createRenderRoot(){const t=super.createRenderRoot();return this.renderOptions.renderBefore??=t.firstChild,t}update(t){const r=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Do=D(r,this.renderRoot,this.renderOptions);}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(true);}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(false);}render(){return E}};i$2._$litElement$=true,i$2["finalized"]=true,s.litElementHydrateSupport?.({LitElement:i$2});const o$3=s.litElementPolyfillSupport;o$3?.({LitElement:i$2});(s.litElementVersions??=[]).push("4.2.2");
+
+/**
+ * @typedef {import('./types.js').ScopedElementsHost} ScopedElementsHost
+ * @typedef {import('./types.js').ScopedElementsMap} ScopedElementsMap
+ * @typedef {import('./types.js').ScopedElementsHostConstructor} ScopedElementsHostConstructor
+ */
+
+const version = '3.0.0';
+const versions = window.scopedElementsVersions || (window.scopedElementsVersions = []);
+if (!versions.includes(version)) {
+  versions.push(version);
+}
+
+/**
+ * @template {import('./types.js').Constructor<HTMLElement>} T
+ * @param {T} superclass
+ * @return {T & import('./types.js').Constructor<ScopedElementsHost> & ScopedElementsHostConstructor}
+ */
+const ScopedElementsMixinImplementation$1 = superclass =>
+  /** @type {ScopedElementsHost} */
+  class ScopedElementsHost extends superclass {
+    /**
+     * Obtains the scoped elements definitions map if specified.
+     *
+     * @type {ScopedElementsMap=}
+     */
+    static scopedElements;
+
+    static get scopedElementsVersion() {
+      return version;
+    }
+
+    /** @type {CustomElementRegistry=} */
+    static __registry;
+
+    /**
+     * Obtains the CustomElementRegistry associated to the ShadowRoot.
+     *
+     * @returns {CustomElementRegistry=}
+     */
+    get registry() {
+      return /** @type {typeof ScopedElementsHost} */ (this.constructor).__registry;
+    }
+
+    /**
+     * Set the CustomElementRegistry associated to the ShadowRoot
+     *
+     * @param {CustomElementRegistry} registry
+     */
+    set registry(registry) {
+      /** @type {typeof ScopedElementsHost} */ (this.constructor).__registry = registry;
+    }
+
+    /**
+     * @param {ShadowRootInit} options
+     * @returns {ShadowRoot}
+     */
+    attachShadow(options) {
+      const { scopedElements } = /** @type {typeof ScopedElementsHost} */ (this.constructor);
+
+      const shouldCreateRegistry =
+        !this.registry ||
+        // @ts-ignore
+        (this.registry === this.constructor.__registry &&
+          !Object.prototype.hasOwnProperty.call(this.constructor, '__registry'));
+
+      /**
+       * Create a new registry if:
+       * - the registry is not defined
+       * - this class doesn't have its own registry *AND* has no shared registry
+       * This is important specifically for superclasses/inheritance
+       */
+      if (shouldCreateRegistry) {
+        this.registry = new CustomElementRegistry();
+        for (const [tagName, klass] of Object.entries(scopedElements ?? {})) {
+          this.registry.define(tagName, klass);
+        }
+      }
+
+      return super.attachShadow({
+        ...options,
+        // The polyfill currently expects the registry to be passed as `customElements`
+        customElements: this.registry,
+        // But the proposal has moved forward, and renamed it to `registry`
+        // For backwards compatibility, we pass it as both
+        registry: this.registry,
+      });
+    }
+  };
+
+const ScopedElementsMixin$1 = dedupeMixin(ScopedElementsMixinImplementation$1);
+
+/**
+ * @typedef {import('./types.js').ScopedElementsHost} ScopedElementsHost
+ * @typedef {import('./types.js').ScopedElementsMap} ScopedElementsMap
+ * @typedef {import('./types.js').ScopedElementsHostConstructor} ScopedElementsHostConstructor
+ * @typedef {import('lit').CSSResultOrNative} CSSResultOrNative
+ * @typedef {import('lit').LitElement} LitElement
+ * @typedef {typeof import('lit').LitElement} TypeofLitElement
+ * @typedef {import('@open-wc/dedupe-mixin').Constructor<LitElement>} LitElementConstructor
+ */
+
+/**
+ * @template {LitElementConstructor} T
+ * @param {T} superclass
+ * @return {T & import('@open-wc/dedupe-mixin').Constructor<ScopedElementsHost> & ScopedElementsHostConstructor}
+ */
+const ScopedElementsMixinImplementation = superclass =>
+  /** @type {ScopedElementsHost} */
+  class ScopedElementsHost extends ScopedElementsMixin$1(superclass) {
+    createRenderRoot() {
+      const { shadowRootOptions, elementStyles } = /** @type {TypeofLitElement} */ (
+        this.constructor
+      );
+
+      const shadowRoot = this.attachShadow(shadowRootOptions);
+      // @ts-ignore
+      this.renderOptions.creationScope = shadowRoot;
+
+      S$1(shadowRoot, elementStyles);
+
+      this.renderOptions.renderBefore ??= shadowRoot.firstChild;
+
+      return shadowRoot;
+    }
+  };
+
+const ScopedElementsMixin = dedupeMixin(ScopedElementsMixinImplementation);
+
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */const o$2={attribute:true,type:String,converter:u$2,reflect:false,hasChanged:f$1},r$1=(t=o$2,e,r)=>{const{kind:n,metadata:i}=r;let s=globalThis.litPropertyMetadata.get(i);if(void 0===s&&globalThis.litPropertyMetadata.set(i,s=new Map),"setter"===n&&((t=Object.create(t)).wrapped=true),s.set(r.name,t),"accessor"===n){const{name:o}=r;return {set(r){const n=e.get.call(this);e.set.call(this,r),this.requestUpdate(o,n,t,true,r);},init(e){return void 0!==e&&this.C(o,void 0,t,e),e}}}if("setter"===n){const{name:o}=r;return function(r){const n=this[o];e.call(this,r),this.requestUpdate(o,n,t,true,r);}}throw Error("Unsupported decorator location: "+n)};function n$1(t){return (e,o)=>"object"==typeof o?r$1(t,e,o):((t,e,o)=>{const r=e.hasOwnProperty(o);return e.constructor.createProperty(o,t),r?Object.getOwnPropertyDescriptor(e,o):void 0})(t,e,o)}
+
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */function r(r){return n$1({...r,state:true,attribute:false})}
+
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+const e$3=(e,t,c)=>(c.configurable=true,c.enumerable=true,Reflect.decorate&&"object"!=typeof t&&Object.defineProperty(e,t,c),c);
+
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */function e$2(e,r){return (n,s,i)=>{const o=t=>t.renderRoot?.querySelector(e)??null;return e$3(n,s,{get(){return o(this)}})}}
+
+/**
+ * @license
+ * Copyright 2021 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */function o$1(o){return (e,n)=>{const{slot:r,selector:s}=o??{},c="slot"+(r?`[name=${r}]`:":not([name])");return e$3(e,n,{get(){const t=this.renderRoot?.querySelector(c),e=t?.assignedElements(o)??[];return void 0===s?e:e.filter(t=>t.matches(s))}})}}
+
 /**
  * @license
  * Copyright 2021 Google LLC
@@ -44,6 +264,12 @@ typeof SuppressedError === "function" ? SuppressedError : function (error, suppr
  * Untagged template strings with expressions aren't supported by lit-localize
  * because they don't allow for values to be captured at runtime.
  */
+const _str = (strings, ...values) => ({
+    strTag: true,
+    strings,
+    values,
+});
+const str = _str;
 const isStrTagged = (val) => typeof val !== 'string' && 'strTag' in val;
 /**
  * Render the result of a `str` tagged template to a string. Note we don't need
@@ -138,39 +364,13 @@ loading.resolve();
 
 /**
  * @license
- * Copyright 2019 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */
-const t$2=globalThis,e$6=t$2.ShadowRoot&&(void 0===t$2.ShadyCSS||t$2.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,s$2=Symbol(),o$5=new WeakMap;let n$3 = class n{constructor(t,e,o){if(this._$cssResult$=true,o!==s$2)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=t,this.t=e;}get styleSheet(){let t=this.o;const s=this.t;if(e$6&&void 0===t){const e=void 0!==s&&1===s.length;e&&(t=o$5.get(s)),void 0===t&&((this.o=t=new CSSStyleSheet).replaceSync(this.cssText),e&&o$5.set(s,t));}return t}toString(){return this.cssText}};const r$4=t=>new n$3("string"==typeof t?t:t+"",void 0,s$2),i$4=(t,...e)=>{const o=1===t.length?t[0]:e.reduce((e,s,o)=>e+(t=>{if(true===t._$cssResult$)return t.cssText;if("number"==typeof t)return t;throw Error("Value passed to 'css' function must be a 'css' function result: "+t+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(s)+t[o+1],t[0]);return new n$3(o,t,s$2)},S$1=(s,o)=>{if(e$6)s.adoptedStyleSheets=o.map(t=>t instanceof CSSStyleSheet?t:t.styleSheet);else for(const e of o){const o=document.createElement("style"),n=t$2.litNonce;void 0!==n&&o.setAttribute("nonce",n),o.textContent=e.cssText,s.appendChild(o);}},c$2=e$6?t=>t:t=>t instanceof CSSStyleSheet?(t=>{let e="";for(const s of t.cssRules)e+=s.cssText;return r$4(e)})(t):t;
-
-/**
- * @license
- * Copyright 2017 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */const{is:i$3,defineProperty:e$5,getOwnPropertyDescriptor:h$1,getOwnPropertyNames:r$3,getOwnPropertySymbols:o$4,getPrototypeOf:n$2}=Object,a$1=globalThis,c$1=a$1.trustedTypes,l$1=c$1?c$1.emptyScript:"",p$1=a$1.reactiveElementPolyfillSupport,d$1=(t,s)=>t,u$1={toAttribute(t,s){switch(s){case Boolean:t=t?l$1:null;break;case Object:case Array:t=null==t?t:JSON.stringify(t);}return t},fromAttribute(t,s){let i=t;switch(s){case Boolean:i=null!==t;break;case Number:i=null===t?null:Number(t);break;case Object:case Array:try{i=JSON.parse(t);}catch(t){i=null;}}return i}},f$1=(t,s)=>!i$3(t,s),b$1={attribute:true,type:String,converter:u$1,reflect:false,useDefault:false,hasChanged:f$1};Symbol.metadata??=Symbol("metadata"),a$1.litPropertyMetadata??=new WeakMap;let y$1 = class y extends HTMLElement{static addInitializer(t){this._$Ei(),(this.l??=[]).push(t);}static get observedAttributes(){return this.finalize(),this._$Eh&&[...this._$Eh.keys()]}static createProperty(t,s=b$1){if(s.state&&(s.attribute=false),this._$Ei(),this.prototype.hasOwnProperty(t)&&((s=Object.create(s)).wrapped=true),this.elementProperties.set(t,s),!s.noAccessor){const i=Symbol(),h=this.getPropertyDescriptor(t,i,s);void 0!==h&&e$5(this.prototype,t,h);}}static getPropertyDescriptor(t,s,i){const{get:e,set:r}=h$1(this.prototype,t)??{get(){return this[s]},set(t){this[s]=t;}};return {get:e,set(s){const h=e?.call(this);r?.call(this,s),this.requestUpdate(t,h,i);},configurable:true,enumerable:true}}static getPropertyOptions(t){return this.elementProperties.get(t)??b$1}static _$Ei(){if(this.hasOwnProperty(d$1("elementProperties")))return;const t=n$2(this);t.finalize(),void 0!==t.l&&(this.l=[...t.l]),this.elementProperties=new Map(t.elementProperties);}static finalize(){if(this.hasOwnProperty(d$1("finalized")))return;if(this.finalized=true,this._$Ei(),this.hasOwnProperty(d$1("properties"))){const t=this.properties,s=[...r$3(t),...o$4(t)];for(const i of s)this.createProperty(i,t[i]);}const t=this[Symbol.metadata];if(null!==t){const s=litPropertyMetadata.get(t);if(void 0!==s)for(const[t,i]of s)this.elementProperties.set(t,i);}this._$Eh=new Map;for(const[t,s]of this.elementProperties){const i=this._$Eu(t,s);void 0!==i&&this._$Eh.set(i,t);}this.elementStyles=this.finalizeStyles(this.styles);}static finalizeStyles(s){const i=[];if(Array.isArray(s)){const e=new Set(s.flat(1/0).reverse());for(const s of e)i.unshift(c$2(s));}else void 0!==s&&i.push(c$2(s));return i}static _$Eu(t,s){const i=s.attribute;return  false===i?void 0:"string"==typeof i?i:"string"==typeof t?t.toLowerCase():void 0}constructor(){super(),this._$Ep=void 0,this.isUpdatePending=false,this.hasUpdated=false,this._$Em=null,this._$Ev();}_$Ev(){this._$ES=new Promise(t=>this.enableUpdating=t),this._$AL=new Map,this._$E_(),this.requestUpdate(),this.constructor.l?.forEach(t=>t(this));}addController(t){(this._$EO??=new Set).add(t),void 0!==this.renderRoot&&this.isConnected&&t.hostConnected?.();}removeController(t){this._$EO?.delete(t);}_$E_(){const t=new Map,s=this.constructor.elementProperties;for(const i of s.keys())this.hasOwnProperty(i)&&(t.set(i,this[i]),delete this[i]);t.size>0&&(this._$Ep=t);}createRenderRoot(){const t=this.shadowRoot??this.attachShadow(this.constructor.shadowRootOptions);return S$1(t,this.constructor.elementStyles),t}connectedCallback(){this.renderRoot??=this.createRenderRoot(),this.enableUpdating(true),this._$EO?.forEach(t=>t.hostConnected?.());}enableUpdating(t){}disconnectedCallback(){this._$EO?.forEach(t=>t.hostDisconnected?.());}attributeChangedCallback(t,s,i){this._$AK(t,i);}_$ET(t,s){const i=this.constructor.elementProperties.get(t),e=this.constructor._$Eu(t,i);if(void 0!==e&&true===i.reflect){const h=(void 0!==i.converter?.toAttribute?i.converter:u$1).toAttribute(s,i.type);this._$Em=t,null==h?this.removeAttribute(e):this.setAttribute(e,h),this._$Em=null;}}_$AK(t,s){const i=this.constructor,e=i._$Eh.get(t);if(void 0!==e&&this._$Em!==e){const t=i.getPropertyOptions(e),h="function"==typeof t.converter?{fromAttribute:t.converter}:void 0!==t.converter?.fromAttribute?t.converter:u$1;this._$Em=e;const r=h.fromAttribute(s,t.type);this[e]=r??this._$Ej?.get(e)??r,this._$Em=null;}}requestUpdate(t,s,i,e=false,h){if(void 0!==t){const r=this.constructor;if(false===e&&(h=this[t]),i??=r.getPropertyOptions(t),!((i.hasChanged??f$1)(h,s)||i.useDefault&&i.reflect&&h===this._$Ej?.get(t)&&!this.hasAttribute(r._$Eu(t,i))))return;this.C(t,s,i);} false===this.isUpdatePending&&(this._$ES=this._$EP());}C(t,s,{useDefault:i,reflect:e,wrapped:h},r){i&&!(this._$Ej??=new Map).has(t)&&(this._$Ej.set(t,r??s??this[t]),true!==h||void 0!==r)||(this._$AL.has(t)||(this.hasUpdated||i||(s=void 0),this._$AL.set(t,s)),true===e&&this._$Em!==t&&(this._$Eq??=new Set).add(t));}async _$EP(){this.isUpdatePending=true;try{await this._$ES;}catch(t){Promise.reject(t);}const t=this.scheduleUpdate();return null!=t&&await t,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){if(!this.isUpdatePending)return;if(!this.hasUpdated){if(this.renderRoot??=this.createRenderRoot(),this._$Ep){for(const[t,s]of this._$Ep)this[t]=s;this._$Ep=void 0;}const t=this.constructor.elementProperties;if(t.size>0)for(const[s,i]of t){const{wrapped:t}=i,e=this[s];true!==t||this._$AL.has(s)||void 0===e||this.C(s,void 0,i,e);}}let t=false;const s=this._$AL;try{t=this.shouldUpdate(s),t?(this.willUpdate(s),this._$EO?.forEach(t=>t.hostUpdate?.()),this.update(s)):this._$EM();}catch(s){throw t=false,this._$EM(),s}t&&this._$AE(s);}willUpdate(t){}_$AE(t){this._$EO?.forEach(t=>t.hostUpdated?.()),this.hasUpdated||(this.hasUpdated=true,this.firstUpdated(t)),this.updated(t);}_$EM(){this._$AL=new Map,this.isUpdatePending=false;}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$ES}shouldUpdate(t){return  true}update(t){this._$Eq&&=this._$Eq.forEach(t=>this._$ET(t,this[t])),this._$EM();}updated(t){}firstUpdated(t){}};y$1.elementStyles=[],y$1.shadowRootOptions={mode:"open"},y$1[d$1("elementProperties")]=new Map,y$1[d$1("finalized")]=new Map,p$1?.({ReactiveElement:y$1}),(a$1.reactiveElementVersions??=[]).push("2.1.2");
-
-/**
- * @license
- * Copyright 2017 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */
-const t$1=globalThis,i$2=t=>t,s$1=t$1.trustedTypes,e$4=s$1?s$1.createPolicy("lit-html",{createHTML:t=>t}):void 0,h="$lit$",o$3=`lit$${Math.random().toFixed(9).slice(2)}$`,n$1="?"+o$3,r$2=`<${n$1}>`,l=document,c=()=>l.createComment(""),a=t=>null===t||"object"!=typeof t&&"function"!=typeof t,u=Array.isArray,d=t=>u(t)||"function"==typeof t?.[Symbol.iterator],f="[ \t\n\f\r]",v=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,_=/-->/g,m=/>/g,p=RegExp(`>|${f}(?:([^\\s"'>=/]+)(${f}*=${f}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,"g"),g=/'/g,$=/"/g,y=/^(?:script|style|textarea|title)$/i,x=t=>(i,...s)=>({_$litType$:t,strings:i,values:s}),b=x(1),E=Symbol.for("lit-noChange"),A=Symbol.for("lit-nothing"),C=new WeakMap,P=l.createTreeWalker(l,129);function V(t,i){if(!u(t)||!t.hasOwnProperty("raw"))throw Error("invalid template strings array");return void 0!==e$4?e$4.createHTML(i):i}const N=(t,i)=>{const s=t.length-1,e=[];let n,l=2===i?"<svg>":3===i?"<math>":"",c=v;for(let i=0;i<s;i++){const s=t[i];let a,u,d=-1,f=0;for(;f<s.length&&(c.lastIndex=f,u=c.exec(s),null!==u);)f=c.lastIndex,c===v?"!--"===u[1]?c=_:void 0!==u[1]?c=m:void 0!==u[2]?(y.test(u[2])&&(n=RegExp("</"+u[2],"g")),c=p):void 0!==u[3]&&(c=p):c===p?">"===u[0]?(c=n??v,d=-1):void 0===u[1]?d=-2:(d=c.lastIndex-u[2].length,a=u[1],c=void 0===u[3]?p:'"'===u[3]?$:g):c===$||c===g?c=p:c===_||c===m?c=v:(c=p,n=void 0);const x=c===p&&t[i+1].startsWith("/>")?" ":"";l+=c===v?s+r$2:d>=0?(e.push(a),s.slice(0,d)+h+s.slice(d)+o$3+x):s+o$3+(-2===d?i:x);}return [V(t,l+(t[s]||"<?>")+(2===i?"</svg>":3===i?"</math>":"")),e]};class S{constructor({strings:t,_$litType$:i},e){let r;this.parts=[];let l=0,a=0;const u=t.length-1,d=this.parts,[f,v]=N(t,i);if(this.el=S.createElement(f,e),P.currentNode=this.el.content,2===i||3===i){const t=this.el.content.firstChild;t.replaceWith(...t.childNodes);}for(;null!==(r=P.nextNode())&&d.length<u;){if(1===r.nodeType){if(r.hasAttributes())for(const t of r.getAttributeNames())if(t.endsWith(h)){const i=v[a++],s=r.getAttribute(t).split(o$3),e=/([.?@])?(.*)/.exec(i);d.push({type:1,index:l,name:e[2],strings:s,ctor:"."===e[1]?I:"?"===e[1]?L:"@"===e[1]?z:H}),r.removeAttribute(t);}else t.startsWith(o$3)&&(d.push({type:6,index:l}),r.removeAttribute(t));if(y.test(r.tagName)){const t=r.textContent.split(o$3),i=t.length-1;if(i>0){r.textContent=s$1?s$1.emptyScript:"";for(let s=0;s<i;s++)r.append(t[s],c()),P.nextNode(),d.push({type:2,index:++l});r.append(t[i],c());}}}else if(8===r.nodeType)if(r.data===n$1)d.push({type:2,index:l});else {let t=-1;for(;-1!==(t=r.data.indexOf(o$3,t+1));)d.push({type:7,index:l}),t+=o$3.length-1;}l++;}}static createElement(t,i){const s=l.createElement("template");return s.innerHTML=t,s}}function M(t,i,s=t,e){if(i===E)return i;let h=void 0!==e?s._$Co?.[e]:s._$Cl;const o=a(i)?void 0:i._$litDirective$;return h?.constructor!==o&&(h?._$AO?.(false),void 0===o?h=void 0:(h=new o(t),h._$AT(t,s,e)),void 0!==e?(s._$Co??=[])[e]=h:s._$Cl=h),void 0!==h&&(i=M(t,h._$AS(t,i.values),h,e)),i}class R{constructor(t,i){this._$AV=[],this._$AN=void 0,this._$AD=t,this._$AM=i;}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(t){const{el:{content:i},parts:s}=this._$AD,e=(t?.creationScope??l).importNode(i,true);P.currentNode=e;let h=P.nextNode(),o=0,n=0,r=s[0];for(;void 0!==r;){if(o===r.index){let i;2===r.type?i=new k(h,h.nextSibling,this,t):1===r.type?i=new r.ctor(h,r.name,r.strings,this,t):6===r.type&&(i=new Z(h,this,t)),this._$AV.push(i),r=s[++n];}o!==r?.index&&(h=P.nextNode(),o++);}return P.currentNode=l,e}p(t){let i=0;for(const s of this._$AV) void 0!==s&&(void 0!==s.strings?(s._$AI(t,s,i),i+=s.strings.length-2):s._$AI(t[i])),i++;}}class k{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(t,i,s,e){this.type=2,this._$AH=A,this._$AN=void 0,this._$AA=t,this._$AB=i,this._$AM=s,this.options=e,this._$Cv=e?.isConnected??true;}get parentNode(){let t=this._$AA.parentNode;const i=this._$AM;return void 0!==i&&11===t?.nodeType&&(t=i.parentNode),t}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(t,i=this){t=M(this,t,i),a(t)?t===A||null==t||""===t?(this._$AH!==A&&this._$AR(),this._$AH=A):t!==this._$AH&&t!==E&&this._(t):void 0!==t._$litType$?this.$(t):void 0!==t.nodeType?this.T(t):d(t)?this.k(t):this._(t);}O(t){return this._$AA.parentNode.insertBefore(t,this._$AB)}T(t){this._$AH!==t&&(this._$AR(),this._$AH=this.O(t));}_(t){this._$AH!==A&&a(this._$AH)?this._$AA.nextSibling.data=t:this.T(l.createTextNode(t)),this._$AH=t;}$(t){const{values:i,_$litType$:s}=t,e="number"==typeof s?this._$AC(t):(void 0===s.el&&(s.el=S.createElement(V(s.h,s.h[0]),this.options)),s);if(this._$AH?._$AD===e)this._$AH.p(i);else {const t=new R(e,this),s=t.u(this.options);t.p(i),this.T(s),this._$AH=t;}}_$AC(t){let i=C.get(t.strings);return void 0===i&&C.set(t.strings,i=new S(t)),i}k(t){u(this._$AH)||(this._$AH=[],this._$AR());const i=this._$AH;let s,e=0;for(const h of t)e===i.length?i.push(s=new k(this.O(c()),this.O(c()),this,this.options)):s=i[e],s._$AI(h),e++;e<i.length&&(this._$AR(s&&s._$AB.nextSibling,e),i.length=e);}_$AR(t=this._$AA.nextSibling,s){for(this._$AP?.(false,true,s);t!==this._$AB;){const s=i$2(t).nextSibling;i$2(t).remove(),t=s;}}setConnected(t){ void 0===this._$AM&&(this._$Cv=t,this._$AP?.(t));}}class H{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(t,i,s,e,h){this.type=1,this._$AH=A,this._$AN=void 0,this.element=t,this.name=i,this._$AM=e,this.options=h,s.length>2||""!==s[0]||""!==s[1]?(this._$AH=Array(s.length-1).fill(new String),this.strings=s):this._$AH=A;}_$AI(t,i=this,s,e){const h=this.strings;let o=false;if(void 0===h)t=M(this,t,i,0),o=!a(t)||t!==this._$AH&&t!==E,o&&(this._$AH=t);else {const e=t;let n,r;for(t=h[0],n=0;n<h.length-1;n++)r=M(this,e[s+n],i,n),r===E&&(r=this._$AH[n]),o||=!a(r)||r!==this._$AH[n],r===A?t=A:t!==A&&(t+=(r??"")+h[n+1]),this._$AH[n]=r;}o&&!e&&this.j(t);}j(t){t===A?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,t??"");}}class I extends H{constructor(){super(...arguments),this.type=3;}j(t){this.element[this.name]=t===A?void 0:t;}}class L extends H{constructor(){super(...arguments),this.type=4;}j(t){this.element.toggleAttribute(this.name,!!t&&t!==A);}}class z extends H{constructor(t,i,s,e,h){super(t,i,s,e,h),this.type=5;}_$AI(t,i=this){if((t=M(this,t,i,0)??A)===E)return;const s=this._$AH,e=t===A&&s!==A||t.capture!==s.capture||t.once!==s.once||t.passive!==s.passive,h=t!==A&&(s===A||e);e&&this.element.removeEventListener(this.name,this,s),h&&this.element.addEventListener(this.name,this,t),this._$AH=t;}handleEvent(t){"function"==typeof this._$AH?this._$AH.call(this.options?.host??this.element,t):this._$AH.handleEvent(t);}}class Z{constructor(t,i,s){this.element=t,this.type=6,this._$AN=void 0,this._$AM=i,this.options=s;}get _$AU(){return this._$AM._$AU}_$AI(t){M(this,t);}}const B=t$1.litHtmlPolyfillSupport;B?.(S,k),(t$1.litHtmlVersions??=[]).push("3.3.3");const D=(t,i,s)=>{const e=s?.renderBefore??i;let h=e._$litPart$;if(void 0===h){const t=s?.renderBefore??null;e._$litPart$=h=new k(i.insertBefore(c(),t),t,void 0,s??{});}return h._$AI(t),h};
-
-/**
- * @license
- * Copyright 2017 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */const s=globalThis;let i$1 = class i extends y$1{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0;}createRenderRoot(){const t=super.createRenderRoot();return this.renderOptions.renderBefore??=t.firstChild,t}update(t){const r=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Do=D(r,this.renderRoot,this.renderOptions);}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(true);}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(false);}render(){return E}};i$1._$litElement$=true,i$1["finalized"]=true,s.litElementHydrateSupport?.({LitElement:i$1});const o$2=s.litElementPolyfillSupport;o$2?.({LitElement:i$1});(s.litElementVersions??=[]).push("4.2.2");
-
-/**
- * @license
  * Copyright 2022 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  */
 /**
  * A component for elevation.
  */
-class Elevation extends i$1 {
+class Elevation extends i$2 {
     connectedCallback() {
         super.connectedCallback();
         // Needed for VoiceOver, which will create a "group" if the element is a
@@ -188,7 +388,7 @@ class Elevation extends i$1 {
  * SPDX-License-Identifier: Apache-2.0
  */
 // Generated stylesheet for ./elevation/internal/elevation-styles.css.
-const styles$9 = i$4 `:host,.shadow,.shadow::before,.shadow::after{border-radius:inherit;inset:0;position:absolute;transition-duration:inherit;transition-property:inherit;transition-timing-function:inherit}:host{display:flex;pointer-events:none;transition-property:box-shadow,opacity}.shadow::before,.shadow::after{content:"";transition-property:box-shadow,opacity;--_level: var(--md-elevation-level, 0);--_shadow-color: var(--md-elevation-shadow-color, var(--md-sys-color-shadow, #000))}.shadow::before{box-shadow:0px calc(1px*(clamp(0,var(--_level),1) + clamp(0,var(--_level) - 3,1) + 2*clamp(0,var(--_level) - 4,1))) calc(1px*(2*clamp(0,var(--_level),1) + clamp(0,var(--_level) - 2,1) + clamp(0,var(--_level) - 4,1))) 0px var(--_shadow-color);opacity:.3}.shadow::after{box-shadow:0px calc(1px*(clamp(0,var(--_level),1) + clamp(0,var(--_level) - 1,1) + 2*clamp(0,var(--_level) - 2,3))) calc(1px*(3*clamp(0,var(--_level),2) + 2*clamp(0,var(--_level) - 2,3))) calc(1px*(clamp(0,var(--_level),4) + 2*clamp(0,var(--_level) - 4,1))) var(--_shadow-color);opacity:.15}
+const styles$c = i$5 `:host,.shadow,.shadow::before,.shadow::after{border-radius:inherit;inset:0;position:absolute;transition-duration:inherit;transition-property:inherit;transition-timing-function:inherit}:host{display:flex;pointer-events:none;transition-property:box-shadow,opacity}.shadow::before,.shadow::after{content:"";transition-property:box-shadow,opacity;--_level: var(--md-elevation-level, 0);--_shadow-color: var(--md-elevation-shadow-color, var(--md-sys-color-shadow, #000))}.shadow::before{box-shadow:0px calc(1px*(clamp(0,var(--_level),1) + clamp(0,var(--_level) - 3,1) + 2*clamp(0,var(--_level) - 4,1))) calc(1px*(2*clamp(0,var(--_level),1) + clamp(0,var(--_level) - 2,1) + clamp(0,var(--_level) - 4,1))) 0px var(--_shadow-color);opacity:.3}.shadow::after{box-shadow:0px calc(1px*(clamp(0,var(--_level),1) + clamp(0,var(--_level) - 1,1) + 2*clamp(0,var(--_level) - 2,3))) calc(1px*(3*clamp(0,var(--_level),2) + 2*clamp(0,var(--_level) - 2,3))) calc(1px*(clamp(0,var(--_level),4) + 2*clamp(0,var(--_level) - 4,1))) var(--_shadow-color);opacity:.15}
 `;
 
 /*
@@ -207,38 +407,7 @@ const styles$9 = i$4 `:host,.shadow,.shadow::before,.shadow::after{border-radius
  */
 class OscdElevation extends Elevation {
 }
-OscdElevation.styles = [styles$9];
-
-/**
- * @license
- * Copyright 2017 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */const o$1={attribute:true,type:String,converter:u$1,reflect:false,hasChanged:f$1},r$1=(t=o$1,e,r)=>{const{kind:n,metadata:i}=r;let s=globalThis.litPropertyMetadata.get(i);if(void 0===s&&globalThis.litPropertyMetadata.set(i,s=new Map),"setter"===n&&((t=Object.create(t)).wrapped=true),s.set(r.name,t),"accessor"===n){const{name:o}=r;return {set(r){const n=e.get.call(this);e.set.call(this,r),this.requestUpdate(o,n,t,true,r);},init(e){return void 0!==e&&this.C(o,void 0,t,e),e}}}if("setter"===n){const{name:o}=r;return function(r){const n=this[o];e.call(this,r),this.requestUpdate(o,n,t,true,r);}}throw Error("Unsupported decorator location: "+n)};function n(t){return (e,o)=>"object"==typeof o?r$1(t,e,o):((t,e,o)=>{const r=e.hasOwnProperty(o);return e.constructor.createProperty(o,t),r?Object.getOwnPropertyDescriptor(e,o):void 0})(t,e,o)}
-
-/**
- * @license
- * Copyright 2017 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */function r(r){return n({...r,state:true,attribute:false})}
-
-/**
- * @license
- * Copyright 2017 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */
-const e$3=(e,t,c)=>(c.configurable=true,c.enumerable=true,Reflect.decorate&&"object"!=typeof t&&Object.defineProperty(e,t,c),c);
-
-/**
- * @license
- * Copyright 2017 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */function e$2(e,r){return (n,s,i)=>{const o=t=>t.renderRoot?.querySelector(e)??null;return e$3(n,s,{get(){return o(this)}})}}
-
-/**
- * @license
- * Copyright 2021 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */function o(o){return (e,n)=>{const{slot:r,selector:s}=o??{},c="slot"+(r?`[name=${r}]`:":not([name])");return e$3(e,n,{get(){const t=this.renderRoot?.querySelector(c),e=t?.assignedElements(o)??[];return void 0===s?e:e.filter(t=>t.matches(s))}})}}
+OscdElevation.styles = [styles$c];
 
 /**
  * @license
@@ -374,7 +543,7 @@ const EVENTS$1 = ['focusin', 'focusout', 'pointerdown'];
  *
  * @fires visibility-changed {Event} Fired whenever `visible` changes.
  */
-class FocusRing extends i$1 {
+class FocusRing extends i$2 {
     constructor() {
         super(...arguments);
         /**
@@ -447,10 +616,10 @@ class FocusRing extends i$1 {
     }
 }
 __decorate([
-    n({ type: Boolean, reflect: true })
+    n$1({ type: Boolean, reflect: true })
 ], FocusRing.prototype, "visible", void 0);
 __decorate([
-    n({ type: Boolean, reflect: true })
+    n$1({ type: Boolean, reflect: true })
 ], FocusRing.prototype, "inward", void 0);
 const HANDLED_BY_FOCUS_RING = Symbol('handledByFocusRing');
 
@@ -460,7 +629,7 @@ const HANDLED_BY_FOCUS_RING = Symbol('handledByFocusRing');
  * SPDX-License-Identifier: Apache-2.0
  */
 // Generated stylesheet for ./focus/internal/focus-ring-styles.css.
-const styles$8 = i$4 `:host{animation-delay:0s,calc(var(--md-focus-ring-duration, 600ms)*.25);animation-duration:calc(var(--md-focus-ring-duration, 600ms)*.25),calc(var(--md-focus-ring-duration, 600ms)*.75);animation-timing-function:cubic-bezier(0.2, 0, 0, 1);box-sizing:border-box;color:var(--md-focus-ring-color, var(--md-sys-color-secondary, #625b71));display:none;pointer-events:none;position:absolute}:host([visible]){display:flex}:host(:not([inward])){animation-name:outward-grow,outward-shrink;border-end-end-radius:calc(var(--md-focus-ring-shape-end-end, var(--md-focus-ring-shape, var(--md-sys-shape-corner-full, 9999px))) + var(--md-focus-ring-outward-offset, 2px));border-end-start-radius:calc(var(--md-focus-ring-shape-end-start, var(--md-focus-ring-shape, var(--md-sys-shape-corner-full, 9999px))) + var(--md-focus-ring-outward-offset, 2px));border-start-end-radius:calc(var(--md-focus-ring-shape-start-end, var(--md-focus-ring-shape, var(--md-sys-shape-corner-full, 9999px))) + var(--md-focus-ring-outward-offset, 2px));border-start-start-radius:calc(var(--md-focus-ring-shape-start-start, var(--md-focus-ring-shape, var(--md-sys-shape-corner-full, 9999px))) + var(--md-focus-ring-outward-offset, 2px));inset:calc(-1*var(--md-focus-ring-outward-offset, 2px));outline:var(--md-focus-ring-width, 3px) solid currentColor}:host([inward]){animation-name:inward-grow,inward-shrink;border-end-end-radius:calc(var(--md-focus-ring-shape-end-end, var(--md-focus-ring-shape, var(--md-sys-shape-corner-full, 9999px))) - var(--md-focus-ring-inward-offset, 0px));border-end-start-radius:calc(var(--md-focus-ring-shape-end-start, var(--md-focus-ring-shape, var(--md-sys-shape-corner-full, 9999px))) - var(--md-focus-ring-inward-offset, 0px));border-start-end-radius:calc(var(--md-focus-ring-shape-start-end, var(--md-focus-ring-shape, var(--md-sys-shape-corner-full, 9999px))) - var(--md-focus-ring-inward-offset, 0px));border-start-start-radius:calc(var(--md-focus-ring-shape-start-start, var(--md-focus-ring-shape, var(--md-sys-shape-corner-full, 9999px))) - var(--md-focus-ring-inward-offset, 0px));border:var(--md-focus-ring-width, 3px) solid currentColor;inset:var(--md-focus-ring-inward-offset, 0px)}@keyframes outward-grow{from{outline-width:0}to{outline-width:var(--md-focus-ring-active-width, 8px)}}@keyframes outward-shrink{from{outline-width:var(--md-focus-ring-active-width, 8px)}}@keyframes inward-grow{from{border-width:0}to{border-width:var(--md-focus-ring-active-width, 8px)}}@keyframes inward-shrink{from{border-width:var(--md-focus-ring-active-width, 8px)}}@media(prefers-reduced-motion){:host{animation:none}}
+const styles$b = i$5 `:host{animation-delay:0s,calc(var(--md-focus-ring-duration, 600ms)*.25);animation-duration:calc(var(--md-focus-ring-duration, 600ms)*.25),calc(var(--md-focus-ring-duration, 600ms)*.75);animation-timing-function:cubic-bezier(0.2, 0, 0, 1);box-sizing:border-box;color:var(--md-focus-ring-color, var(--md-sys-color-secondary, #625b71));display:none;pointer-events:none;position:absolute}:host([visible]){display:flex}:host(:not([inward])){animation-name:outward-grow,outward-shrink;border-end-end-radius:calc(var(--md-focus-ring-shape-end-end, var(--md-focus-ring-shape, var(--md-sys-shape-corner-full, 9999px))) + var(--md-focus-ring-outward-offset, 2px));border-end-start-radius:calc(var(--md-focus-ring-shape-end-start, var(--md-focus-ring-shape, var(--md-sys-shape-corner-full, 9999px))) + var(--md-focus-ring-outward-offset, 2px));border-start-end-radius:calc(var(--md-focus-ring-shape-start-end, var(--md-focus-ring-shape, var(--md-sys-shape-corner-full, 9999px))) + var(--md-focus-ring-outward-offset, 2px));border-start-start-radius:calc(var(--md-focus-ring-shape-start-start, var(--md-focus-ring-shape, var(--md-sys-shape-corner-full, 9999px))) + var(--md-focus-ring-outward-offset, 2px));inset:calc(-1*var(--md-focus-ring-outward-offset, 2px));outline:var(--md-focus-ring-width, 3px) solid currentColor}:host([inward]){animation-name:inward-grow,inward-shrink;border-end-end-radius:calc(var(--md-focus-ring-shape-end-end, var(--md-focus-ring-shape, var(--md-sys-shape-corner-full, 9999px))) - var(--md-focus-ring-inward-offset, 0px));border-end-start-radius:calc(var(--md-focus-ring-shape-end-start, var(--md-focus-ring-shape, var(--md-sys-shape-corner-full, 9999px))) - var(--md-focus-ring-inward-offset, 0px));border-start-end-radius:calc(var(--md-focus-ring-shape-start-end, var(--md-focus-ring-shape, var(--md-sys-shape-corner-full, 9999px))) - var(--md-focus-ring-inward-offset, 0px));border-start-start-radius:calc(var(--md-focus-ring-shape-start-start, var(--md-focus-ring-shape, var(--md-sys-shape-corner-full, 9999px))) - var(--md-focus-ring-inward-offset, 0px));border:var(--md-focus-ring-width, 3px) solid currentColor;inset:var(--md-focus-ring-inward-offset, 0px)}@keyframes outward-grow{from{outline-width:0}to{outline-width:var(--md-focus-ring-active-width, 8px)}}@keyframes outward-shrink{from{outline-width:var(--md-focus-ring-active-width, 8px)}}@keyframes inward-grow{from{border-width:0}to{border-width:var(--md-focus-ring-active-width, 8px)}}@keyframes inward-shrink{from{border-width:var(--md-focus-ring-active-width, 8px)}}@media(prefers-reduced-motion){:host{animation:none}}
 `;
 
 /*
@@ -477,20 +646,20 @@ const styles$8 = i$4 `:host{animation-delay:0s,calc(var(--md-focus-ring-duration
  */
 class OscdFocusRing extends FocusRing {
 }
-OscdFocusRing.styles = [styles$8];
+OscdFocusRing.styles = [styles$b];
 
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const t={ATTRIBUTE:1},e$1=t=>(...e)=>({_$litDirective$:t,values:e});class i{constructor(t){}get _$AU(){return this._$AM._$AU}_$AT(t,e,i){this._$Ct=t,this._$AM=e,this._$Ci=i;}_$AS(t,e){return this.update(t,e)}update(t,e){return this.render(...e)}}
+const t={ATTRIBUTE:1},e$1=t=>(...e)=>({_$litDirective$:t,values:e});let i$1 = class i{constructor(t){}get _$AU(){return this._$AM._$AU}_$AT(t,e,i){this._$Ct=t,this._$AM=e,this._$Ci=i;}_$AS(t,e){return this.update(t,e)}update(t,e){return this.render(...e)}};
 
 /**
  * @license
  * Copyright 2018 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
- */const e=e$1(class extends i{constructor(t$1){if(super(t$1),t$1.type!==t.ATTRIBUTE||"class"!==t$1.name||t$1.strings?.length>2)throw Error("`classMap()` can only be used in the `class` attribute and must be the only part in the attribute.")}render(t){return " "+Object.keys(t).filter(s=>t[s]).join(" ")+" "}update(s,[i]){if(void 0===this.st){this.st=new Set,void 0!==s.strings&&(this.nt=new Set(s.strings.join(" ").split(/\s/).filter(t=>""!==t)));for(const t in i)i[t]&&!this.nt?.has(t)&&this.st.add(t);return this.render(i)}const r=s.element.classList;for(const t of this.st)t in i||(r.remove(t),this.st.delete(t));for(const t in i){const s=!!i[t];s===this.st.has(t)||this.nt?.has(t)||(s?(r.add(t),this.st.add(t)):(r.remove(t),this.st.delete(t)));}return E}});
+ */const e=e$1(class extends i$1{constructor(t$1){if(super(t$1),t$1.type!==t.ATTRIBUTE||"class"!==t$1.name||t$1.strings?.length>2)throw Error("`classMap()` can only be used in the `class` attribute and must be the only part in the attribute.")}render(t){return " "+Object.keys(t).filter(s=>t[s]).join(" ")+" "}update(s,[i]){if(void 0===this.st){this.st=new Set,void 0!==s.strings&&(this.nt=new Set(s.strings.join(" ").split(/\s/).filter(t=>""!==t)));for(const t in i)i[t]&&!this.nt?.has(t)&&this.st.add(t);return this.render(i)}const r=s.element.classList;for(const t of this.st)t in i||(r.remove(t),this.st.delete(t));for(const t in i){const s=!!i[t];s===this.st.has(t)||this.nt?.has(t)||(s?(r.add(t),this.st.add(t)):(r.remove(t),this.st.delete(t)));}return E}});
 
 /**
  * @license
@@ -592,7 +761,7 @@ const FORCED_COLORS = window.matchMedia('(forced-colors: active)');
 /**
  * A ripple component.
  */
-class Ripple extends i$1 {
+class Ripple extends i$2 {
     constructor() {
         super(...arguments);
         /**
@@ -902,7 +1071,7 @@ class Ripple extends i$1 {
     }
 }
 __decorate([
-    n({ type: Boolean, reflect: true })
+    n$1({ type: Boolean, reflect: true })
 ], Ripple.prototype, "disabled", void 0);
 __decorate([
     r()
@@ -920,7 +1089,7 @@ __decorate([
  * SPDX-License-Identifier: Apache-2.0
  */
 // Generated stylesheet for ./ripple/internal/ripple-styles.css.
-const styles$7 = i$4 `:host{display:flex;margin:auto;pointer-events:none}:host([disabled]){display:none}@media(forced-colors: active){:host{display:none}}:host,.surface{border-radius:inherit;position:absolute;inset:0;overflow:hidden}.surface{-webkit-tap-highlight-color:rgba(0,0,0,0)}.surface::before,.surface::after{content:"";opacity:0;position:absolute}.surface::before{background-color:var(--md-ripple-hover-color, var(--md-sys-color-on-surface, #1d1b20));inset:0;transition:opacity 15ms linear,background-color 15ms linear}.surface::after{background:radial-gradient(closest-side, var(--md-ripple-pressed-color, var(--md-sys-color-on-surface, #1d1b20)) max(100% - 70px, 65%), transparent 100%);transform-origin:center center;transition:opacity 375ms linear}.hovered::before{background-color:var(--md-ripple-hover-color, var(--md-sys-color-on-surface, #1d1b20));opacity:var(--md-ripple-hover-opacity, 0.08)}.pressed::after{opacity:var(--md-ripple-pressed-opacity, 0.12);transition-duration:105ms}
+const styles$a = i$5 `:host{display:flex;margin:auto;pointer-events:none}:host([disabled]){display:none}@media(forced-colors: active){:host{display:none}}:host,.surface{border-radius:inherit;position:absolute;inset:0;overflow:hidden}.surface{-webkit-tap-highlight-color:rgba(0,0,0,0)}.surface::before,.surface::after{content:"";opacity:0;position:absolute}.surface::before{background-color:var(--md-ripple-hover-color, var(--md-sys-color-on-surface, #1d1b20));inset:0;transition:opacity 15ms linear,background-color 15ms linear}.surface::after{background:radial-gradient(closest-side, var(--md-ripple-pressed-color, var(--md-sys-color-on-surface, #1d1b20)) max(100% - 70px, 65%), transparent 100%);transform-origin:center center;transition:opacity 375ms linear}.hovered::before{background-color:var(--md-ripple-hover-color, var(--md-sys-color-on-surface, #1d1b20));opacity:var(--md-ripple-hover-opacity, 0.08)}.pressed::after{opacity:var(--md-ripple-pressed-opacity, 0.12);transition-duration:105ms}
 `;
 
 /*
@@ -943,7 +1112,7 @@ const styles$7 = i$4 `:host{display:flex;margin:auto;pointer-events:none}:host([
  */
 class OscdRipple extends Ripple {
 }
-OscdRipple.styles = [styles$7];
+OscdRipple.styles = [styles$a];
 
 /**
  * @license
@@ -1488,10 +1657,10 @@ function mixinFormAssociated(base) {
     /** @nocollapse */
     FormAssociatedElement.formAssociated = true;
     __decorate([
-        n({ noAccessor: true })
+        n$1({ noAccessor: true })
     ], FormAssociatedElement.prototype, "name", null);
     __decorate([
-        n({ type: Boolean, noAccessor: true })
+        n$1({ type: Boolean, noAccessor: true })
     ], FormAssociatedElement.prototype, "disabled", null);
     return FormAssociatedElement;
 }
@@ -1724,10 +1893,10 @@ function mixinFormSubmitter(base) {
         }
     }
     __decorate([
-        n()
+        n$1()
     ], FormSubmitterElement.prototype, "type", void 0);
     __decorate([
-        n({ reflect: true })
+        n$1({ reflect: true })
     ], FormSubmitterElement.prototype, "value", void 0);
     return FormSubmitterElement;
 }
@@ -1738,7 +1907,7 @@ function mixinFormSubmitter(base) {
  * SPDX-License-Identifier: Apache-2.0
  */
 // Separate variable needed for closure.
-const buttonBaseClass = mixinDelegatesAria(mixinFormSubmitter(mixinFormAssociated(mixinElementInternals(i$1))));
+const buttonBaseClass = mixinDelegatesAria(mixinFormSubmitter(mixinFormAssociated(mixinElementInternals(i$2))));
 /**
  * A button component.
  */
@@ -1874,28 +2043,28 @@ Button.shadowRootOptions = {
     delegatesFocus: true,
 };
 __decorate([
-    n({ type: Boolean, attribute: 'soft-disabled', reflect: true })
+    n$1({ type: Boolean, attribute: 'soft-disabled', reflect: true })
 ], Button.prototype, "softDisabled", void 0);
 __decorate([
-    n()
+    n$1()
 ], Button.prototype, "href", void 0);
 __decorate([
-    n()
+    n$1()
 ], Button.prototype, "download", void 0);
 __decorate([
-    n()
+    n$1()
 ], Button.prototype, "target", void 0);
 __decorate([
-    n({ type: Boolean, attribute: 'trailing-icon', reflect: true })
+    n$1({ type: Boolean, attribute: 'trailing-icon', reflect: true })
 ], Button.prototype, "trailingIcon", void 0);
 __decorate([
-    n({ type: Boolean, attribute: 'has-icon', reflect: true })
+    n$1({ type: Boolean, attribute: 'has-icon', reflect: true })
 ], Button.prototype, "hasIcon", void 0);
 __decorate([
     e$2('.button')
 ], Button.prototype, "buttonElement", void 0);
 __decorate([
-    o({ slot: 'icon', flatten: true })
+    o$1({ slot: 'icon', flatten: true })
 ], Button.prototype, "assignedIcons", void 0);
 
 /**
@@ -1918,7 +2087,7 @@ class FilledButton extends Button {
  * SPDX-License-Identifier: Apache-2.0
  */
 // Generated stylesheet for ./button/internal/filled-styles.css.
-const styles$6 = i$4 `:host{--_container-color: var(--md-filled-button-container-color, var(--md-sys-color-primary, #6750a4));--_container-elevation: var(--md-filled-button-container-elevation, 0);--_container-height: var(--md-filled-button-container-height, 40px);--_container-shadow-color: var(--md-filled-button-container-shadow-color, var(--md-sys-color-shadow, #000));--_disabled-container-color: var(--md-filled-button-disabled-container-color, var(--md-sys-color-on-surface, #1d1b20));--_disabled-container-elevation: var(--md-filled-button-disabled-container-elevation, 0);--_disabled-container-opacity: var(--md-filled-button-disabled-container-opacity, 0.12);--_disabled-label-text-color: var(--md-filled-button-disabled-label-text-color, var(--md-sys-color-on-surface, #1d1b20));--_disabled-label-text-opacity: var(--md-filled-button-disabled-label-text-opacity, 0.38);--_focus-container-elevation: var(--md-filled-button-focus-container-elevation, 0);--_focus-label-text-color: var(--md-filled-button-focus-label-text-color, var(--md-sys-color-on-primary, #fff));--_hover-container-elevation: var(--md-filled-button-hover-container-elevation, 1);--_hover-label-text-color: var(--md-filled-button-hover-label-text-color, var(--md-sys-color-on-primary, #fff));--_hover-state-layer-color: var(--md-filled-button-hover-state-layer-color, var(--md-sys-color-on-primary, #fff));--_hover-state-layer-opacity: var(--md-filled-button-hover-state-layer-opacity, 0.08);--_label-text-color: var(--md-filled-button-label-text-color, var(--md-sys-color-on-primary, #fff));--_label-text-font: var(--md-filled-button-label-text-font, var(--md-sys-typescale-label-large-font, var(--md-ref-typeface-plain, Roboto)));--_label-text-line-height: var(--md-filled-button-label-text-line-height, var(--md-sys-typescale-label-large-line-height, 1.25rem));--_label-text-size: var(--md-filled-button-label-text-size, var(--md-sys-typescale-label-large-size, 0.875rem));--_label-text-weight: var(--md-filled-button-label-text-weight, var(--md-sys-typescale-label-large-weight, var(--md-ref-typeface-weight-medium, 500)));--_pressed-container-elevation: var(--md-filled-button-pressed-container-elevation, 0);--_pressed-label-text-color: var(--md-filled-button-pressed-label-text-color, var(--md-sys-color-on-primary, #fff));--_pressed-state-layer-color: var(--md-filled-button-pressed-state-layer-color, var(--md-sys-color-on-primary, #fff));--_pressed-state-layer-opacity: var(--md-filled-button-pressed-state-layer-opacity, 0.12);--_disabled-icon-color: var(--md-filled-button-disabled-icon-color, var(--md-sys-color-on-surface, #1d1b20));--_disabled-icon-opacity: var(--md-filled-button-disabled-icon-opacity, 0.38);--_focus-icon-color: var(--md-filled-button-focus-icon-color, var(--md-sys-color-on-primary, #fff));--_hover-icon-color: var(--md-filled-button-hover-icon-color, var(--md-sys-color-on-primary, #fff));--_icon-color: var(--md-filled-button-icon-color, var(--md-sys-color-on-primary, #fff));--_icon-size: var(--md-filled-button-icon-size, 18px);--_pressed-icon-color: var(--md-filled-button-pressed-icon-color, var(--md-sys-color-on-primary, #fff));--_container-shape-start-start: var(--md-filled-button-container-shape-start-start, var(--md-filled-button-container-shape, var(--md-sys-shape-corner-full, 9999px)));--_container-shape-start-end: var(--md-filled-button-container-shape-start-end, var(--md-filled-button-container-shape, var(--md-sys-shape-corner-full, 9999px)));--_container-shape-end-end: var(--md-filled-button-container-shape-end-end, var(--md-filled-button-container-shape, var(--md-sys-shape-corner-full, 9999px)));--_container-shape-end-start: var(--md-filled-button-container-shape-end-start, var(--md-filled-button-container-shape, var(--md-sys-shape-corner-full, 9999px)));--_leading-space: var(--md-filled-button-leading-space, 24px);--_trailing-space: var(--md-filled-button-trailing-space, 24px);--_with-leading-icon-leading-space: var(--md-filled-button-with-leading-icon-leading-space, 16px);--_with-leading-icon-trailing-space: var(--md-filled-button-with-leading-icon-trailing-space, 24px);--_with-trailing-icon-leading-space: var(--md-filled-button-with-trailing-icon-leading-space, 24px);--_with-trailing-icon-trailing-space: var(--md-filled-button-with-trailing-icon-trailing-space, 16px)}
+const styles$9 = i$5 `:host{--_container-color: var(--md-filled-button-container-color, var(--md-sys-color-primary, #6750a4));--_container-elevation: var(--md-filled-button-container-elevation, 0);--_container-height: var(--md-filled-button-container-height, 40px);--_container-shadow-color: var(--md-filled-button-container-shadow-color, var(--md-sys-color-shadow, #000));--_disabled-container-color: var(--md-filled-button-disabled-container-color, var(--md-sys-color-on-surface, #1d1b20));--_disabled-container-elevation: var(--md-filled-button-disabled-container-elevation, 0);--_disabled-container-opacity: var(--md-filled-button-disabled-container-opacity, 0.12);--_disabled-label-text-color: var(--md-filled-button-disabled-label-text-color, var(--md-sys-color-on-surface, #1d1b20));--_disabled-label-text-opacity: var(--md-filled-button-disabled-label-text-opacity, 0.38);--_focus-container-elevation: var(--md-filled-button-focus-container-elevation, 0);--_focus-label-text-color: var(--md-filled-button-focus-label-text-color, var(--md-sys-color-on-primary, #fff));--_hover-container-elevation: var(--md-filled-button-hover-container-elevation, 1);--_hover-label-text-color: var(--md-filled-button-hover-label-text-color, var(--md-sys-color-on-primary, #fff));--_hover-state-layer-color: var(--md-filled-button-hover-state-layer-color, var(--md-sys-color-on-primary, #fff));--_hover-state-layer-opacity: var(--md-filled-button-hover-state-layer-opacity, 0.08);--_label-text-color: var(--md-filled-button-label-text-color, var(--md-sys-color-on-primary, #fff));--_label-text-font: var(--md-filled-button-label-text-font, var(--md-sys-typescale-label-large-font, var(--md-ref-typeface-plain, Roboto)));--_label-text-line-height: var(--md-filled-button-label-text-line-height, var(--md-sys-typescale-label-large-line-height, 1.25rem));--_label-text-size: var(--md-filled-button-label-text-size, var(--md-sys-typescale-label-large-size, 0.875rem));--_label-text-weight: var(--md-filled-button-label-text-weight, var(--md-sys-typescale-label-large-weight, var(--md-ref-typeface-weight-medium, 500)));--_pressed-container-elevation: var(--md-filled-button-pressed-container-elevation, 0);--_pressed-label-text-color: var(--md-filled-button-pressed-label-text-color, var(--md-sys-color-on-primary, #fff));--_pressed-state-layer-color: var(--md-filled-button-pressed-state-layer-color, var(--md-sys-color-on-primary, #fff));--_pressed-state-layer-opacity: var(--md-filled-button-pressed-state-layer-opacity, 0.12);--_disabled-icon-color: var(--md-filled-button-disabled-icon-color, var(--md-sys-color-on-surface, #1d1b20));--_disabled-icon-opacity: var(--md-filled-button-disabled-icon-opacity, 0.38);--_focus-icon-color: var(--md-filled-button-focus-icon-color, var(--md-sys-color-on-primary, #fff));--_hover-icon-color: var(--md-filled-button-hover-icon-color, var(--md-sys-color-on-primary, #fff));--_icon-color: var(--md-filled-button-icon-color, var(--md-sys-color-on-primary, #fff));--_icon-size: var(--md-filled-button-icon-size, 18px);--_pressed-icon-color: var(--md-filled-button-pressed-icon-color, var(--md-sys-color-on-primary, #fff));--_container-shape-start-start: var(--md-filled-button-container-shape-start-start, var(--md-filled-button-container-shape, var(--md-sys-shape-corner-full, 9999px)));--_container-shape-start-end: var(--md-filled-button-container-shape-start-end, var(--md-filled-button-container-shape, var(--md-sys-shape-corner-full, 9999px)));--_container-shape-end-end: var(--md-filled-button-container-shape-end-end, var(--md-filled-button-container-shape, var(--md-sys-shape-corner-full, 9999px)));--_container-shape-end-start: var(--md-filled-button-container-shape-end-start, var(--md-filled-button-container-shape, var(--md-sys-shape-corner-full, 9999px)));--_leading-space: var(--md-filled-button-leading-space, 24px);--_trailing-space: var(--md-filled-button-trailing-space, 24px);--_with-leading-icon-leading-space: var(--md-filled-button-with-leading-icon-leading-space, 16px);--_with-leading-icon-trailing-space: var(--md-filled-button-with-leading-icon-trailing-space, 24px);--_with-trailing-icon-leading-space: var(--md-filled-button-with-trailing-icon-leading-space, 24px);--_with-trailing-icon-trailing-space: var(--md-filled-button-with-trailing-icon-trailing-space, 16px)}
 `;
 
 /**
@@ -1927,7 +2096,7 @@ const styles$6 = i$4 `:host{--_container-color: var(--md-filled-button-container
  * SPDX-License-Identifier: Apache-2.0
  */
 // Generated stylesheet for ./button/internal/shared-elevation-styles.css.
-const styles$5 = i$4 `md-elevation{transition-duration:280ms}:host(:is([disabled],[soft-disabled])) md-elevation{transition:none}md-elevation{--md-elevation-level: var(--_container-elevation);--md-elevation-shadow-color: var(--_container-shadow-color)}:host(:focus-within) md-elevation{--md-elevation-level: var(--_focus-container-elevation)}:host(:hover) md-elevation{--md-elevation-level: var(--_hover-container-elevation)}:host(:active) md-elevation{--md-elevation-level: var(--_pressed-container-elevation)}:host(:is([disabled],[soft-disabled])) md-elevation{--md-elevation-level: var(--_disabled-container-elevation)}
+const styles$8 = i$5 `md-elevation{transition-duration:280ms}:host(:is([disabled],[soft-disabled])) md-elevation{transition:none}md-elevation{--md-elevation-level: var(--_container-elevation);--md-elevation-shadow-color: var(--_container-shadow-color)}:host(:focus-within) md-elevation{--md-elevation-level: var(--_focus-container-elevation)}:host(:hover) md-elevation{--md-elevation-level: var(--_hover-container-elevation)}:host(:active) md-elevation{--md-elevation-level: var(--_pressed-container-elevation)}:host(:is([disabled],[soft-disabled])) md-elevation{--md-elevation-level: var(--_disabled-container-elevation)}
 `;
 
 /**
@@ -1936,171 +2105,8 @@ const styles$5 = i$4 `md-elevation{transition-duration:280ms}:host(:is([disabled
  * SPDX-License-Identifier: Apache-2.0
  */
 // Generated stylesheet for ./button/internal/shared-styles.css.
-const styles$4 = i$4 `:host{border-start-start-radius:var(--_container-shape-start-start);border-start-end-radius:var(--_container-shape-start-end);border-end-start-radius:var(--_container-shape-end-start);border-end-end-radius:var(--_container-shape-end-end);box-sizing:border-box;cursor:pointer;display:inline-flex;gap:8px;min-height:var(--_container-height);outline:none;padding-block:calc((var(--_container-height) - max(var(--_label-text-line-height),var(--_icon-size)))/2);padding-inline-start:var(--_leading-space);padding-inline-end:var(--_trailing-space);place-content:center;place-items:center;position:relative;font-family:var(--_label-text-font);font-size:var(--_label-text-size);line-height:var(--_label-text-line-height);font-weight:var(--_label-text-weight);text-overflow:ellipsis;text-wrap:nowrap;user-select:none;-webkit-tap-highlight-color:rgba(0,0,0,0);vertical-align:top;--md-ripple-hover-color: var(--_hover-state-layer-color);--md-ripple-pressed-color: var(--_pressed-state-layer-color);--md-ripple-hover-opacity: var(--_hover-state-layer-opacity);--md-ripple-pressed-opacity: var(--_pressed-state-layer-opacity)}md-focus-ring{--md-focus-ring-shape-start-start: var(--_container-shape-start-start);--md-focus-ring-shape-start-end: var(--_container-shape-start-end);--md-focus-ring-shape-end-end: var(--_container-shape-end-end);--md-focus-ring-shape-end-start: var(--_container-shape-end-start)}:host(:is([disabled],[soft-disabled])){cursor:default;pointer-events:none}.button{border-radius:inherit;cursor:inherit;display:inline-flex;align-items:center;justify-content:center;border:none;outline:none;-webkit-appearance:none;vertical-align:middle;background:rgba(0,0,0,0);text-decoration:none;min-width:calc(64px - var(--_leading-space) - var(--_trailing-space));width:100%;z-index:0;height:100%;font:inherit;color:var(--_label-text-color);padding:0;gap:inherit;text-transform:inherit}.button::-moz-focus-inner{padding:0;border:0}:host(:hover) .button{color:var(--_hover-label-text-color)}:host(:focus-within) .button{color:var(--_focus-label-text-color)}:host(:active) .button{color:var(--_pressed-label-text-color)}.background{background:var(--_container-color);border-radius:inherit;inset:0;position:absolute}.label{overflow:hidden}:is(.button,.label,.label slot),.label ::slotted(*){text-overflow:inherit}:host(:is([disabled],[soft-disabled])) .label{color:var(--_disabled-label-text-color);opacity:var(--_disabled-label-text-opacity)}:host(:is([disabled],[soft-disabled])) .background{background:var(--_disabled-container-color);opacity:var(--_disabled-container-opacity)}@media(forced-colors: active){.background{border:1px solid CanvasText}:host(:is([disabled],[soft-disabled])){--_disabled-icon-color: GrayText;--_disabled-icon-opacity: 1;--_disabled-container-opacity: 1;--_disabled-label-text-color: GrayText;--_disabled-label-text-opacity: 1}}:host([has-icon]:not([trailing-icon])){padding-inline-start:var(--_with-leading-icon-leading-space);padding-inline-end:var(--_with-leading-icon-trailing-space)}:host([has-icon][trailing-icon]){padding-inline-start:var(--_with-trailing-icon-leading-space);padding-inline-end:var(--_with-trailing-icon-trailing-space)}::slotted([slot=icon]){display:inline-flex;position:relative;writing-mode:horizontal-tb;fill:currentColor;flex-shrink:0;color:var(--_icon-color);font-size:var(--_icon-size);inline-size:var(--_icon-size);block-size:var(--_icon-size)}:host(:hover) ::slotted([slot=icon]){color:var(--_hover-icon-color)}:host(:focus-within) ::slotted([slot=icon]){color:var(--_focus-icon-color)}:host(:active) ::slotted([slot=icon]){color:var(--_pressed-icon-color)}:host(:is([disabled],[soft-disabled])) ::slotted([slot=icon]){color:var(--_disabled-icon-color);opacity:var(--_disabled-icon-opacity)}.touch{position:absolute;top:50%;height:48px;left:0;right:0;transform:translateY(-50%)}:host([touch-target=wrapper]){margin:max(0px,(48px - var(--_container-height))/2) 0}:host([touch-target=none]) .touch{display:none}
+const styles$7 = i$5 `:host{border-start-start-radius:var(--_container-shape-start-start);border-start-end-radius:var(--_container-shape-start-end);border-end-start-radius:var(--_container-shape-end-start);border-end-end-radius:var(--_container-shape-end-end);box-sizing:border-box;cursor:pointer;display:inline-flex;gap:8px;min-height:var(--_container-height);outline:none;padding-block:calc((var(--_container-height) - max(var(--_label-text-line-height),var(--_icon-size)))/2);padding-inline-start:var(--_leading-space);padding-inline-end:var(--_trailing-space);place-content:center;place-items:center;position:relative;font-family:var(--_label-text-font);font-size:var(--_label-text-size);line-height:var(--_label-text-line-height);font-weight:var(--_label-text-weight);text-overflow:ellipsis;text-wrap:nowrap;user-select:none;-webkit-tap-highlight-color:rgba(0,0,0,0);vertical-align:top;--md-ripple-hover-color: var(--_hover-state-layer-color);--md-ripple-pressed-color: var(--_pressed-state-layer-color);--md-ripple-hover-opacity: var(--_hover-state-layer-opacity);--md-ripple-pressed-opacity: var(--_pressed-state-layer-opacity)}md-focus-ring{--md-focus-ring-shape-start-start: var(--_container-shape-start-start);--md-focus-ring-shape-start-end: var(--_container-shape-start-end);--md-focus-ring-shape-end-end: var(--_container-shape-end-end);--md-focus-ring-shape-end-start: var(--_container-shape-end-start)}:host(:is([disabled],[soft-disabled])){cursor:default;pointer-events:none}.button{border-radius:inherit;cursor:inherit;display:inline-flex;align-items:center;justify-content:center;border:none;outline:none;-webkit-appearance:none;vertical-align:middle;background:rgba(0,0,0,0);text-decoration:none;min-width:calc(64px - var(--_leading-space) - var(--_trailing-space));width:100%;z-index:0;height:100%;font:inherit;color:var(--_label-text-color);padding:0;gap:inherit;text-transform:inherit}.button::-moz-focus-inner{padding:0;border:0}:host(:hover) .button{color:var(--_hover-label-text-color)}:host(:focus-within) .button{color:var(--_focus-label-text-color)}:host(:active) .button{color:var(--_pressed-label-text-color)}.background{background:var(--_container-color);border-radius:inherit;inset:0;position:absolute}.label{overflow:hidden}:is(.button,.label,.label slot),.label ::slotted(*){text-overflow:inherit}:host(:is([disabled],[soft-disabled])) .label{color:var(--_disabled-label-text-color);opacity:var(--_disabled-label-text-opacity)}:host(:is([disabled],[soft-disabled])) .background{background:var(--_disabled-container-color);opacity:var(--_disabled-container-opacity)}@media(forced-colors: active){.background{border:1px solid CanvasText}:host(:is([disabled],[soft-disabled])){--_disabled-icon-color: GrayText;--_disabled-icon-opacity: 1;--_disabled-container-opacity: 1;--_disabled-label-text-color: GrayText;--_disabled-label-text-opacity: 1}}:host([has-icon]:not([trailing-icon])){padding-inline-start:var(--_with-leading-icon-leading-space);padding-inline-end:var(--_with-leading-icon-trailing-space)}:host([has-icon][trailing-icon]){padding-inline-start:var(--_with-trailing-icon-leading-space);padding-inline-end:var(--_with-trailing-icon-trailing-space)}::slotted([slot=icon]){display:inline-flex;position:relative;writing-mode:horizontal-tb;fill:currentColor;flex-shrink:0;color:var(--_icon-color);font-size:var(--_icon-size);inline-size:var(--_icon-size);block-size:var(--_icon-size)}:host(:hover) ::slotted([slot=icon]){color:var(--_hover-icon-color)}:host(:focus-within) ::slotted([slot=icon]){color:var(--_focus-icon-color)}:host(:active) ::slotted([slot=icon]){color:var(--_pressed-icon-color)}:host(:is([disabled],[soft-disabled])) ::slotted([slot=icon]){color:var(--_disabled-icon-color);opacity:var(--_disabled-icon-opacity)}.touch{position:absolute;top:50%;height:48px;left:0;right:0;transform:translateY(-50%)}:host([touch-target=wrapper]){margin:max(0px,(48px - var(--_container-height))/2) 0}:host([touch-target=none]) .touch{display:none}
 `;
-
-const appliedClassMixins = new WeakMap();
-
-/** Vefify if the Mixin was previously applyed
- * @private
- * @param {function} mixin      Mixin being applyed
- * @param {object} superClass   Class receiving the new mixin
- * @returns {boolean}
- */
-function wasMixinPreviouslyApplied(mixin, superClass) {
-  let klass = superClass;
-  while (klass) {
-    if (appliedClassMixins.get(klass) === mixin) {
-      return true;
-    }
-    klass = Object.getPrototypeOf(klass);
-  }
-  return false;
-}
-
-/** Apply each mixin in the chain to make sure they are not applied more than once to the final class.
- * @export
- * @param {function} mixin      Mixin to be applyed
- * @returns {object}            Mixed class with mixin applied
- */
-function dedupeMixin(mixin) {
-  return superClass => {
-    if (wasMixinPreviouslyApplied(mixin, superClass)) {
-      return superClass;
-    }
-    const mixedClass = mixin(superClass);
-    appliedClassMixins.set(mixedClass, mixin);
-    return mixedClass;
-  };
-}
-
-/**
- * @typedef {import('./types.js').ScopedElementsHost} ScopedElementsHost
- * @typedef {import('./types.js').ScopedElementsMap} ScopedElementsMap
- * @typedef {import('./types.js').ScopedElementsHostConstructor} ScopedElementsHostConstructor
- */
-
-const version = '3.0.0';
-const versions = window.scopedElementsVersions || (window.scopedElementsVersions = []);
-if (!versions.includes(version)) {
-  versions.push(version);
-}
-
-/**
- * @template {import('./types.js').Constructor<HTMLElement>} T
- * @param {T} superclass
- * @return {T & import('./types.js').Constructor<ScopedElementsHost> & ScopedElementsHostConstructor}
- */
-const ScopedElementsMixinImplementation$1 = superclass =>
-  /** @type {ScopedElementsHost} */
-  class ScopedElementsHost extends superclass {
-    /**
-     * Obtains the scoped elements definitions map if specified.
-     *
-     * @type {ScopedElementsMap=}
-     */
-    static scopedElements;
-
-    static get scopedElementsVersion() {
-      return version;
-    }
-
-    /** @type {CustomElementRegistry=} */
-    static __registry;
-
-    /**
-     * Obtains the CustomElementRegistry associated to the ShadowRoot.
-     *
-     * @returns {CustomElementRegistry=}
-     */
-    get registry() {
-      return /** @type {typeof ScopedElementsHost} */ (this.constructor).__registry;
-    }
-
-    /**
-     * Set the CustomElementRegistry associated to the ShadowRoot
-     *
-     * @param {CustomElementRegistry} registry
-     */
-    set registry(registry) {
-      /** @type {typeof ScopedElementsHost} */ (this.constructor).__registry = registry;
-    }
-
-    /**
-     * @param {ShadowRootInit} options
-     * @returns {ShadowRoot}
-     */
-    attachShadow(options) {
-      const { scopedElements } = /** @type {typeof ScopedElementsHost} */ (this.constructor);
-
-      const shouldCreateRegistry =
-        !this.registry ||
-        // @ts-ignore
-        (this.registry === this.constructor.__registry &&
-          !Object.prototype.hasOwnProperty.call(this.constructor, '__registry'));
-
-      /**
-       * Create a new registry if:
-       * - the registry is not defined
-       * - this class doesn't have its own registry *AND* has no shared registry
-       * This is important specifically for superclasses/inheritance
-       */
-      if (shouldCreateRegistry) {
-        this.registry = new CustomElementRegistry();
-        for (const [tagName, klass] of Object.entries(scopedElements ?? {})) {
-          this.registry.define(tagName, klass);
-        }
-      }
-
-      return super.attachShadow({
-        ...options,
-        // The polyfill currently expects the registry to be passed as `customElements`
-        customElements: this.registry,
-        // But the proposal has moved forward, and renamed it to `registry`
-        // For backwards compatibility, we pass it as both
-        registry: this.registry,
-      });
-    }
-  };
-
-const ScopedElementsMixin$1 = dedupeMixin(ScopedElementsMixinImplementation$1);
-
-/**
- * @typedef {import('./types.js').ScopedElementsHost} ScopedElementsHost
- * @typedef {import('./types.js').ScopedElementsMap} ScopedElementsMap
- * @typedef {import('./types.js').ScopedElementsHostConstructor} ScopedElementsHostConstructor
- * @typedef {import('lit').CSSResultOrNative} CSSResultOrNative
- * @typedef {import('lit').LitElement} LitElement
- * @typedef {typeof import('lit').LitElement} TypeofLitElement
- * @typedef {import('@open-wc/dedupe-mixin').Constructor<LitElement>} LitElementConstructor
- */
-
-/**
- * @template {LitElementConstructor} T
- * @param {T} superclass
- * @return {T & import('@open-wc/dedupe-mixin').Constructor<ScopedElementsHost> & ScopedElementsHostConstructor}
- */
-const ScopedElementsMixinImplementation = superclass =>
-  /** @type {ScopedElementsHost} */
-  class ScopedElementsHost extends ScopedElementsMixin$1(superclass) {
-    createRenderRoot() {
-      const { shadowRootOptions, elementStyles } = /** @type {TypeofLitElement} */ (
-        this.constructor
-      );
-
-      const shadowRoot = this.attachShadow(shadowRootOptions);
-      // @ts-ignore
-      this.renderOptions.creationScope = shadowRoot;
-
-      S$1(shadowRoot, elementStyles);
-
-      this.renderOptions.renderBefore ??= shadowRoot.firstChild;
-
-      return shadowRoot;
-    }
-  };
-
-const ScopedElementsMixin = dedupeMixin(ScopedElementsMixinImplementation);
 
 /**
  * @license
@@ -2140,9 +2146,9 @@ OscdFilledButton.scopedElements = {
     'md-elevation': OscdElevation,
 };
 OscdFilledButton.styles = [
-    styles$4,
-    styles$5,
-    styles$6,
+    styles$7,
+    styles$8,
+    styles$9,
 ];
 
 /**
@@ -2162,7 +2168,7 @@ class TextButton extends Button {
  * SPDX-License-Identifier: Apache-2.0
  */
 // Generated stylesheet for ./button/internal/text-styles.css.
-const styles$3 = i$4 `:host{--_container-height: var(--md-text-button-container-height, 40px);--_disabled-label-text-color: var(--md-text-button-disabled-label-text-color, var(--md-sys-color-on-surface, #1d1b20));--_disabled-label-text-opacity: var(--md-text-button-disabled-label-text-opacity, 0.38);--_focus-label-text-color: var(--md-text-button-focus-label-text-color, var(--md-sys-color-primary, #6750a4));--_hover-label-text-color: var(--md-text-button-hover-label-text-color, var(--md-sys-color-primary, #6750a4));--_hover-state-layer-color: var(--md-text-button-hover-state-layer-color, var(--md-sys-color-primary, #6750a4));--_hover-state-layer-opacity: var(--md-text-button-hover-state-layer-opacity, 0.08);--_label-text-color: var(--md-text-button-label-text-color, var(--md-sys-color-primary, #6750a4));--_label-text-font: var(--md-text-button-label-text-font, var(--md-sys-typescale-label-large-font, var(--md-ref-typeface-plain, Roboto)));--_label-text-line-height: var(--md-text-button-label-text-line-height, var(--md-sys-typescale-label-large-line-height, 1.25rem));--_label-text-size: var(--md-text-button-label-text-size, var(--md-sys-typescale-label-large-size, 0.875rem));--_label-text-weight: var(--md-text-button-label-text-weight, var(--md-sys-typescale-label-large-weight, var(--md-ref-typeface-weight-medium, 500)));--_pressed-label-text-color: var(--md-text-button-pressed-label-text-color, var(--md-sys-color-primary, #6750a4));--_pressed-state-layer-color: var(--md-text-button-pressed-state-layer-color, var(--md-sys-color-primary, #6750a4));--_pressed-state-layer-opacity: var(--md-text-button-pressed-state-layer-opacity, 0.12);--_disabled-icon-color: var(--md-text-button-disabled-icon-color, var(--md-sys-color-on-surface, #1d1b20));--_disabled-icon-opacity: var(--md-text-button-disabled-icon-opacity, 0.38);--_focus-icon-color: var(--md-text-button-focus-icon-color, var(--md-sys-color-primary, #6750a4));--_hover-icon-color: var(--md-text-button-hover-icon-color, var(--md-sys-color-primary, #6750a4));--_icon-color: var(--md-text-button-icon-color, var(--md-sys-color-primary, #6750a4));--_icon-size: var(--md-text-button-icon-size, 18px);--_pressed-icon-color: var(--md-text-button-pressed-icon-color, var(--md-sys-color-primary, #6750a4));--_container-shape-start-start: var(--md-text-button-container-shape-start-start, var(--md-text-button-container-shape, var(--md-sys-shape-corner-full, 9999px)));--_container-shape-start-end: var(--md-text-button-container-shape-start-end, var(--md-text-button-container-shape, var(--md-sys-shape-corner-full, 9999px)));--_container-shape-end-end: var(--md-text-button-container-shape-end-end, var(--md-text-button-container-shape, var(--md-sys-shape-corner-full, 9999px)));--_container-shape-end-start: var(--md-text-button-container-shape-end-start, var(--md-text-button-container-shape, var(--md-sys-shape-corner-full, 9999px)));--_leading-space: var(--md-text-button-leading-space, 12px);--_trailing-space: var(--md-text-button-trailing-space, 12px);--_with-leading-icon-leading-space: var(--md-text-button-with-leading-icon-leading-space, 12px);--_with-leading-icon-trailing-space: var(--md-text-button-with-leading-icon-trailing-space, 16px);--_with-trailing-icon-leading-space: var(--md-text-button-with-trailing-icon-leading-space, 16px);--_with-trailing-icon-trailing-space: var(--md-text-button-with-trailing-icon-trailing-space, 12px);--_container-color: none;--_disabled-container-color: none;--_disabled-container-opacity: 0}
+const styles$6 = i$5 `:host{--_container-height: var(--md-text-button-container-height, 40px);--_disabled-label-text-color: var(--md-text-button-disabled-label-text-color, var(--md-sys-color-on-surface, #1d1b20));--_disabled-label-text-opacity: var(--md-text-button-disabled-label-text-opacity, 0.38);--_focus-label-text-color: var(--md-text-button-focus-label-text-color, var(--md-sys-color-primary, #6750a4));--_hover-label-text-color: var(--md-text-button-hover-label-text-color, var(--md-sys-color-primary, #6750a4));--_hover-state-layer-color: var(--md-text-button-hover-state-layer-color, var(--md-sys-color-primary, #6750a4));--_hover-state-layer-opacity: var(--md-text-button-hover-state-layer-opacity, 0.08);--_label-text-color: var(--md-text-button-label-text-color, var(--md-sys-color-primary, #6750a4));--_label-text-font: var(--md-text-button-label-text-font, var(--md-sys-typescale-label-large-font, var(--md-ref-typeface-plain, Roboto)));--_label-text-line-height: var(--md-text-button-label-text-line-height, var(--md-sys-typescale-label-large-line-height, 1.25rem));--_label-text-size: var(--md-text-button-label-text-size, var(--md-sys-typescale-label-large-size, 0.875rem));--_label-text-weight: var(--md-text-button-label-text-weight, var(--md-sys-typescale-label-large-weight, var(--md-ref-typeface-weight-medium, 500)));--_pressed-label-text-color: var(--md-text-button-pressed-label-text-color, var(--md-sys-color-primary, #6750a4));--_pressed-state-layer-color: var(--md-text-button-pressed-state-layer-color, var(--md-sys-color-primary, #6750a4));--_pressed-state-layer-opacity: var(--md-text-button-pressed-state-layer-opacity, 0.12);--_disabled-icon-color: var(--md-text-button-disabled-icon-color, var(--md-sys-color-on-surface, #1d1b20));--_disabled-icon-opacity: var(--md-text-button-disabled-icon-opacity, 0.38);--_focus-icon-color: var(--md-text-button-focus-icon-color, var(--md-sys-color-primary, #6750a4));--_hover-icon-color: var(--md-text-button-hover-icon-color, var(--md-sys-color-primary, #6750a4));--_icon-color: var(--md-text-button-icon-color, var(--md-sys-color-primary, #6750a4));--_icon-size: var(--md-text-button-icon-size, 18px);--_pressed-icon-color: var(--md-text-button-pressed-icon-color, var(--md-sys-color-primary, #6750a4));--_container-shape-start-start: var(--md-text-button-container-shape-start-start, var(--md-text-button-container-shape, var(--md-sys-shape-corner-full, 9999px)));--_container-shape-start-end: var(--md-text-button-container-shape-start-end, var(--md-text-button-container-shape, var(--md-sys-shape-corner-full, 9999px)));--_container-shape-end-end: var(--md-text-button-container-shape-end-end, var(--md-text-button-container-shape, var(--md-sys-shape-corner-full, 9999px)));--_container-shape-end-start: var(--md-text-button-container-shape-end-start, var(--md-text-button-container-shape, var(--md-sys-shape-corner-full, 9999px)));--_leading-space: var(--md-text-button-leading-space, 12px);--_trailing-space: var(--md-text-button-trailing-space, 12px);--_with-leading-icon-leading-space: var(--md-text-button-with-leading-icon-leading-space, 12px);--_with-leading-icon-trailing-space: var(--md-text-button-with-leading-icon-trailing-space, 16px);--_with-trailing-icon-leading-space: var(--md-text-button-with-trailing-icon-leading-space, 16px);--_with-trailing-icon-trailing-space: var(--md-text-button-with-trailing-icon-trailing-space, 12px);--_container-color: none;--_disabled-container-color: none;--_disabled-container-opacity: 0}
 `;
 
 /**
@@ -2201,7 +2207,7 @@ OscdTextButton.scopedElements = {
     'md-ripple': OscdRipple,
     'md-focus-ring': OscdFocusRing,
 };
-OscdTextButton.styles = [styles$4, styles$3];
+OscdTextButton.styles = [styles$7, styles$6];
 
 /**
  * @license
@@ -2479,7 +2485,7 @@ class CheckboxValidator extends Validator {
  * SPDX-License-Identifier: Apache-2.0
  */
 // Separate variable needed for closure.
-const checkboxBaseClass = mixinDelegatesAria(mixinConstraintValidation(mixinFormAssociated(mixinElementInternals(i$1))));
+const checkboxBaseClass = mixinDelegatesAria(mixinConstraintValidation(mixinFormAssociated(mixinElementInternals(i$2))));
 /**
  * A checkbox component.
  *
@@ -2624,20 +2630,20 @@ class Checkbox extends checkboxBaseClass {
 }
 /** @nocollapse */
 Checkbox.shadowRootOptions = {
-    ...i$1.shadowRootOptions,
+    ...i$2.shadowRootOptions,
     delegatesFocus: true,
 };
 __decorate([
-    n({ type: Boolean })
+    n$1({ type: Boolean })
 ], Checkbox.prototype, "checked", void 0);
 __decorate([
-    n({ type: Boolean })
+    n$1({ type: Boolean })
 ], Checkbox.prototype, "indeterminate", void 0);
 __decorate([
-    n({ type: Boolean })
+    n$1({ type: Boolean })
 ], Checkbox.prototype, "required", void 0);
 __decorate([
-    n()
+    n$1()
 ], Checkbox.prototype, "value", void 0);
 __decorate([
     r()
@@ -2658,7 +2664,7 @@ __decorate([
  * SPDX-License-Identifier: Apache-2.0
  */
 // Generated stylesheet for ./checkbox/internal/checkbox-styles.css.
-const styles$2 = i$4 `:host{border-start-start-radius:var(--md-checkbox-container-shape-start-start, var(--md-checkbox-container-shape, 2px));border-start-end-radius:var(--md-checkbox-container-shape-start-end, var(--md-checkbox-container-shape, 2px));border-end-end-radius:var(--md-checkbox-container-shape-end-end, var(--md-checkbox-container-shape, 2px));border-end-start-radius:var(--md-checkbox-container-shape-end-start, var(--md-checkbox-container-shape, 2px));display:inline-flex;height:var(--md-checkbox-container-size, 18px);position:relative;vertical-align:top;width:var(--md-checkbox-container-size, 18px);-webkit-tap-highlight-color:rgba(0,0,0,0);cursor:pointer}:host([disabled]){cursor:default}:host([touch-target=wrapper]){margin:max(0px,(48px - var(--md-checkbox-container-size, 18px))/2)}md-focus-ring{height:44px;inset:unset;width:44px}input{appearance:none;height:48px;margin:0;opacity:0;outline:none;position:absolute;width:48px;z-index:1;cursor:inherit}:host([touch-target=none]) input{height:100%;width:100%}.container{border-radius:inherit;display:flex;height:100%;place-content:center;place-items:center;position:relative;width:100%}.outline,.background,.icon{inset:0;position:absolute}.outline,.background{border-radius:inherit}.outline{border-color:var(--md-checkbox-outline-color, var(--md-sys-color-on-surface-variant, #49454f));border-style:solid;border-width:var(--md-checkbox-outline-width, 2px);box-sizing:border-box}.background{background-color:var(--md-checkbox-selected-container-color, var(--md-sys-color-primary, #6750a4))}.background,.icon{opacity:0;transition-duration:150ms,50ms;transition-property:transform,opacity;transition-timing-function:cubic-bezier(0.3, 0, 0.8, 0.15),linear;transform:scale(0.6)}:where(.selected) :is(.background,.icon){opacity:1;transition-duration:350ms,50ms;transition-timing-function:cubic-bezier(0.05, 0.7, 0.1, 1),linear;transform:scale(1)}md-ripple{border-radius:var(--md-checkbox-state-layer-shape, var(--md-sys-shape-corner-full, 9999px));height:var(--md-checkbox-state-layer-size, 40px);inset:unset;width:var(--md-checkbox-state-layer-size, 40px);--md-ripple-hover-color: var(--md-checkbox-hover-state-layer-color, var(--md-sys-color-on-surface, #1d1b20));--md-ripple-hover-opacity: var(--md-checkbox-hover-state-layer-opacity, 0.08);--md-ripple-pressed-color: var(--md-checkbox-pressed-state-layer-color, var(--md-sys-color-primary, #6750a4));--md-ripple-pressed-opacity: var(--md-checkbox-pressed-state-layer-opacity, 0.12)}.selected md-ripple{--md-ripple-hover-color: var(--md-checkbox-selected-hover-state-layer-color, var(--md-sys-color-primary, #6750a4));--md-ripple-hover-opacity: var(--md-checkbox-selected-hover-state-layer-opacity, 0.08);--md-ripple-pressed-color: var(--md-checkbox-selected-pressed-state-layer-color, var(--md-sys-color-on-surface, #1d1b20));--md-ripple-pressed-opacity: var(--md-checkbox-selected-pressed-state-layer-opacity, 0.12)}.icon{fill:var(--md-checkbox-selected-icon-color, var(--md-sys-color-on-primary, #fff));height:var(--md-checkbox-icon-size, 18px);width:var(--md-checkbox-icon-size, 18px)}.mark.short{height:2px;transition-property:transform,height;width:2px}.mark.long{height:2px;transition-property:transform,width;width:10px}.mark{animation-duration:150ms;animation-timing-function:cubic-bezier(0.3, 0, 0.8, 0.15);transition-duration:150ms;transition-timing-function:cubic-bezier(0.3, 0, 0.8, 0.15)}.selected .mark{animation-duration:350ms;animation-timing-function:cubic-bezier(0.05, 0.7, 0.1, 1);transition-duration:350ms;transition-timing-function:cubic-bezier(0.05, 0.7, 0.1, 1)}.checked .mark,.prev-checked.unselected .mark{transform:scaleY(-1) translate(7px, -14px) rotate(45deg)}.checked .mark.short,.prev-checked.unselected .mark.short{height:5.6568542495px}.checked .mark.long,.prev-checked.unselected .mark.long{width:11.313708499px}.indeterminate .mark,.prev-indeterminate.unselected .mark{transform:scaleY(-1) translate(4px, -10px) rotate(0deg)}.prev-unselected .mark{transition-property:none}.prev-unselected.checked .mark.long{animation-name:prev-unselected-to-checked}@keyframes prev-unselected-to-checked{from{width:0}}:where(:hover) .outline{border-color:var(--md-checkbox-hover-outline-color, var(--md-sys-color-on-surface, #1d1b20));border-width:var(--md-checkbox-hover-outline-width, 2px)}:where(:hover) .background{background:var(--md-checkbox-selected-hover-container-color, var(--md-sys-color-primary, #6750a4))}:where(:hover) .icon{fill:var(--md-checkbox-selected-hover-icon-color, var(--md-sys-color-on-primary, #fff))}:where(:focus-within) .outline{border-color:var(--md-checkbox-focus-outline-color, var(--md-sys-color-on-surface, #1d1b20));border-width:var(--md-checkbox-focus-outline-width, 2px)}:where(:focus-within) .background{background:var(--md-checkbox-selected-focus-container-color, var(--md-sys-color-primary, #6750a4))}:where(:focus-within) .icon{fill:var(--md-checkbox-selected-focus-icon-color, var(--md-sys-color-on-primary, #fff))}:where(:active) .outline{border-color:var(--md-checkbox-pressed-outline-color, var(--md-sys-color-on-surface, #1d1b20));border-width:var(--md-checkbox-pressed-outline-width, 2px)}:where(:active) .background{background:var(--md-checkbox-selected-pressed-container-color, var(--md-sys-color-primary, #6750a4))}:where(:active) .icon{fill:var(--md-checkbox-selected-pressed-icon-color, var(--md-sys-color-on-primary, #fff))}:where(.disabled,.prev-disabled) :is(.background,.icon,.mark){animation-duration:0s;transition-duration:0s}:where(.disabled) .outline{border-color:var(--md-checkbox-disabled-outline-color, var(--md-sys-color-on-surface, #1d1b20));border-width:var(--md-checkbox-disabled-outline-width, 2px);opacity:var(--md-checkbox-disabled-container-opacity, 0.38)}:where(.selected.disabled) .outline{visibility:hidden}:where(.selected.disabled) .background{background:var(--md-checkbox-selected-disabled-container-color, var(--md-sys-color-on-surface, #1d1b20));opacity:var(--md-checkbox-selected-disabled-container-opacity, 0.38)}:where(.disabled) .icon{fill:var(--md-checkbox-selected-disabled-icon-color, var(--md-sys-color-surface, #fef7ff))}@media(forced-colors: active){.background{background-color:CanvasText}.selected.disabled .background{background-color:GrayText;opacity:1}.outline{border-color:CanvasText}.disabled .outline{border-color:GrayText;opacity:1}.icon{fill:Canvas}}
+const styles$5 = i$5 `:host{border-start-start-radius:var(--md-checkbox-container-shape-start-start, var(--md-checkbox-container-shape, 2px));border-start-end-radius:var(--md-checkbox-container-shape-start-end, var(--md-checkbox-container-shape, 2px));border-end-end-radius:var(--md-checkbox-container-shape-end-end, var(--md-checkbox-container-shape, 2px));border-end-start-radius:var(--md-checkbox-container-shape-end-start, var(--md-checkbox-container-shape, 2px));display:inline-flex;height:var(--md-checkbox-container-size, 18px);position:relative;vertical-align:top;width:var(--md-checkbox-container-size, 18px);-webkit-tap-highlight-color:rgba(0,0,0,0);cursor:pointer}:host([disabled]){cursor:default}:host([touch-target=wrapper]){margin:max(0px,(48px - var(--md-checkbox-container-size, 18px))/2)}md-focus-ring{height:44px;inset:unset;width:44px}input{appearance:none;height:48px;margin:0;opacity:0;outline:none;position:absolute;width:48px;z-index:1;cursor:inherit}:host([touch-target=none]) input{height:100%;width:100%}.container{border-radius:inherit;display:flex;height:100%;place-content:center;place-items:center;position:relative;width:100%}.outline,.background,.icon{inset:0;position:absolute}.outline,.background{border-radius:inherit}.outline{border-color:var(--md-checkbox-outline-color, var(--md-sys-color-on-surface-variant, #49454f));border-style:solid;border-width:var(--md-checkbox-outline-width, 2px);box-sizing:border-box}.background{background-color:var(--md-checkbox-selected-container-color, var(--md-sys-color-primary, #6750a4))}.background,.icon{opacity:0;transition-duration:150ms,50ms;transition-property:transform,opacity;transition-timing-function:cubic-bezier(0.3, 0, 0.8, 0.15),linear;transform:scale(0.6)}:where(.selected) :is(.background,.icon){opacity:1;transition-duration:350ms,50ms;transition-timing-function:cubic-bezier(0.05, 0.7, 0.1, 1),linear;transform:scale(1)}md-ripple{border-radius:var(--md-checkbox-state-layer-shape, var(--md-sys-shape-corner-full, 9999px));height:var(--md-checkbox-state-layer-size, 40px);inset:unset;width:var(--md-checkbox-state-layer-size, 40px);--md-ripple-hover-color: var(--md-checkbox-hover-state-layer-color, var(--md-sys-color-on-surface, #1d1b20));--md-ripple-hover-opacity: var(--md-checkbox-hover-state-layer-opacity, 0.08);--md-ripple-pressed-color: var(--md-checkbox-pressed-state-layer-color, var(--md-sys-color-primary, #6750a4));--md-ripple-pressed-opacity: var(--md-checkbox-pressed-state-layer-opacity, 0.12)}.selected md-ripple{--md-ripple-hover-color: var(--md-checkbox-selected-hover-state-layer-color, var(--md-sys-color-primary, #6750a4));--md-ripple-hover-opacity: var(--md-checkbox-selected-hover-state-layer-opacity, 0.08);--md-ripple-pressed-color: var(--md-checkbox-selected-pressed-state-layer-color, var(--md-sys-color-on-surface, #1d1b20));--md-ripple-pressed-opacity: var(--md-checkbox-selected-pressed-state-layer-opacity, 0.12)}.icon{fill:var(--md-checkbox-selected-icon-color, var(--md-sys-color-on-primary, #fff));height:var(--md-checkbox-icon-size, 18px);width:var(--md-checkbox-icon-size, 18px)}.mark.short{height:2px;transition-property:transform,height;width:2px}.mark.long{height:2px;transition-property:transform,width;width:10px}.mark{animation-duration:150ms;animation-timing-function:cubic-bezier(0.3, 0, 0.8, 0.15);transition-duration:150ms;transition-timing-function:cubic-bezier(0.3, 0, 0.8, 0.15)}.selected .mark{animation-duration:350ms;animation-timing-function:cubic-bezier(0.05, 0.7, 0.1, 1);transition-duration:350ms;transition-timing-function:cubic-bezier(0.05, 0.7, 0.1, 1)}.checked .mark,.prev-checked.unselected .mark{transform:scaleY(-1) translate(7px, -14px) rotate(45deg)}.checked .mark.short,.prev-checked.unselected .mark.short{height:5.6568542495px}.checked .mark.long,.prev-checked.unselected .mark.long{width:11.313708499px}.indeterminate .mark,.prev-indeterminate.unselected .mark{transform:scaleY(-1) translate(4px, -10px) rotate(0deg)}.prev-unselected .mark{transition-property:none}.prev-unselected.checked .mark.long{animation-name:prev-unselected-to-checked}@keyframes prev-unselected-to-checked{from{width:0}}:where(:hover) .outline{border-color:var(--md-checkbox-hover-outline-color, var(--md-sys-color-on-surface, #1d1b20));border-width:var(--md-checkbox-hover-outline-width, 2px)}:where(:hover) .background{background:var(--md-checkbox-selected-hover-container-color, var(--md-sys-color-primary, #6750a4))}:where(:hover) .icon{fill:var(--md-checkbox-selected-hover-icon-color, var(--md-sys-color-on-primary, #fff))}:where(:focus-within) .outline{border-color:var(--md-checkbox-focus-outline-color, var(--md-sys-color-on-surface, #1d1b20));border-width:var(--md-checkbox-focus-outline-width, 2px)}:where(:focus-within) .background{background:var(--md-checkbox-selected-focus-container-color, var(--md-sys-color-primary, #6750a4))}:where(:focus-within) .icon{fill:var(--md-checkbox-selected-focus-icon-color, var(--md-sys-color-on-primary, #fff))}:where(:active) .outline{border-color:var(--md-checkbox-pressed-outline-color, var(--md-sys-color-on-surface, #1d1b20));border-width:var(--md-checkbox-pressed-outline-width, 2px)}:where(:active) .background{background:var(--md-checkbox-selected-pressed-container-color, var(--md-sys-color-primary, #6750a4))}:where(:active) .icon{fill:var(--md-checkbox-selected-pressed-icon-color, var(--md-sys-color-on-primary, #fff))}:where(.disabled,.prev-disabled) :is(.background,.icon,.mark){animation-duration:0s;transition-duration:0s}:where(.disabled) .outline{border-color:var(--md-checkbox-disabled-outline-color, var(--md-sys-color-on-surface, #1d1b20));border-width:var(--md-checkbox-disabled-outline-width, 2px);opacity:var(--md-checkbox-disabled-container-opacity, 0.38)}:where(.selected.disabled) .outline{visibility:hidden}:where(.selected.disabled) .background{background:var(--md-checkbox-selected-disabled-container-color, var(--md-sys-color-on-surface, #1d1b20));opacity:var(--md-checkbox-selected-disabled-container-opacity, 0.38)}:where(.disabled) .icon{fill:var(--md-checkbox-selected-disabled-icon-color, var(--md-sys-color-surface, #fef7ff))}@media(forced-colors: active){.background{background-color:CanvasText}.selected.disabled .background{background-color:GrayText;opacity:1}.outline{border-color:CanvasText}.disabled .outline{border-color:GrayText;opacity:1}.icon{fill:Canvas}}
 `;
 
 /**
@@ -2690,7 +2696,143 @@ OscdCheckbox.scopedElements = {
     'md-ripple': OscdRipple,
     'md-focus-ring': OscdFocusRing,
 };
-OscdCheckbox.styles = [styles$2];
+OscdCheckbox.styles = [styles$5];
+
+function hasLocalStorage() {
+    try {
+        return typeof window !== 'undefined' && !!window.localStorage;
+    }
+    catch {
+        return false;
+    }
+}
+function resolveKey(host, propKey, namespace) {
+    const hostId = host.id;
+    if (!hostId) {
+        return undefined;
+    }
+    return namespace
+        ? `${namespace}:${hostId}:${propKey}`
+        : `${hostId}:${propKey}`;
+}
+const localstorageEntries = Symbol('localstorage:entries');
+const localstorageLifecycleWrapped = Symbol('localstorage:lifecycleWrapped');
+function installLifecycleWrappers(target) {
+    if (target[localstorageLifecycleWrapped]) {
+        return;
+    }
+    target[localstorageLifecycleWrapped] = true;
+    const connected = target['connectedCallback'];
+    target['connectedCallback'] = function connectedCallback() {
+        connected?.call(this);
+        const entries = target[localstorageEntries];
+        entries?.forEach(entry => entry.hydrateIfNeeded(this));
+    };
+    const requestUpdate = target['requestUpdate'];
+    target['requestUpdate'] = function requestUpdateCallback(name, oldValue, options) {
+        const result = requestUpdate?.call(this, name, oldValue, options);
+        if (name === undefined) {
+            return result;
+        }
+        const entries = target[localstorageEntries];
+        entries
+            ?.filter(entry => entry.propName === name)
+            .forEach(entry => entry.persistIfPossible(this));
+        return result;
+    };
+}
+function localstorage(opts = {}) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (target, propName) => {
+        const propKey = String(propName);
+        const hydratedSymbol = Symbol(`${propKey}:hydrated`);
+        const disabledSymbol = Symbol(`${propKey}:disabled`);
+        const warnedMissingIdSymbol = Symbol(`${propKey}:warnedMissingId`);
+        const warnMissingId = (host) => {
+            if (host[warnedMissingIdSymbol]) {
+                return;
+            }
+            console.warn(`[localstorage] ${propKey} requires a static host id for persistence. Dynamic IDs are not supported.`);
+            host[warnedMissingIdSymbol] = true;
+        };
+        const hydrateIfNeeded = (host) => {
+            if (host[hydratedSymbol] || host[disabledSymbol]) {
+                return;
+            }
+            if (!hasLocalStorage()) {
+                if ('default' in opts) {
+                    host[propName] = opts.default;
+                }
+                host[hydratedSymbol] = true;
+                return;
+            }
+            const storageKey = resolveKey(host, propKey, opts.namespace);
+            if (!storageKey) {
+                if (!host.isConnected) {
+                    return;
+                }
+                warnMissingId(host);
+                host[disabledSymbol] = true;
+                return;
+            }
+            const raw = localStorage.getItem(storageKey);
+            if (raw != null) {
+                try {
+                    host[propName] = opts.deserializer
+                        ? opts.deserializer(raw)
+                        : JSON.parse(raw);
+                }
+                catch {
+                    if ('default' in opts) {
+                        host[propName] = opts.default;
+                    }
+                }
+            }
+            else if ('default' in opts) {
+                host[propName] = opts.default;
+            }
+            host[hydratedSymbol] = true;
+        };
+        const persistIfPossible = (host) => {
+            if (host[disabledSymbol]) {
+                return;
+            }
+            const storageKey = resolveKey(host, propKey, opts.namespace);
+            if (!storageKey || !hasLocalStorage()) {
+                if (!storageKey) {
+                    if (!host.isConnected) {
+                        return;
+                    }
+                    warnMissingId(host);
+                    host[disabledSymbol] = true;
+                }
+                return;
+            }
+            try {
+                const raw = opts.serializer
+                    ? opts.serializer(host[propName])
+                    : JSON.stringify(host[propName]);
+                localStorage.setItem(storageKey, raw);
+            }
+            catch {
+                // ignore quota/serialization errors
+            }
+        };
+        installLifecycleWrappers(target);
+        if (!target[localstorageEntries]) {
+            target[localstorageEntries] = [];
+        }
+        target[localstorageEntries].push({
+            propName,
+            propKey,
+            hydratedSymbol,
+            disabledSymbol,
+            warnedMissingIdSymbol,
+            hydrateIfNeeded,
+            persistIfPossible,
+        });
+    };
+}
 
 /**
  * @license
@@ -2700,7 +2842,7 @@ OscdCheckbox.styles = [styles$2];
 /**
  * A divider component.
  */
-class Divider extends i$1 {
+class Divider extends i$2 {
     constructor() {
         super(...arguments);
         /**
@@ -2718,13 +2860,13 @@ class Divider extends i$1 {
     }
 }
 __decorate([
-    n({ type: Boolean, reflect: true })
+    n$1({ type: Boolean, reflect: true })
 ], Divider.prototype, "inset", void 0);
 __decorate([
-    n({ type: Boolean, reflect: true, attribute: 'inset-start' })
+    n$1({ type: Boolean, reflect: true, attribute: 'inset-start' })
 ], Divider.prototype, "insetStart", void 0);
 __decorate([
-    n({ type: Boolean, reflect: true, attribute: 'inset-end' })
+    n$1({ type: Boolean, reflect: true, attribute: 'inset-end' })
 ], Divider.prototype, "insetEnd", void 0);
 
 /**
@@ -2733,7 +2875,7 @@ __decorate([
  * SPDX-License-Identifier: Apache-2.0
  */
 // Generated stylesheet for ./divider/internal/divider-styles.css.
-const styles$1 = i$4 `:host{box-sizing:border-box;color:var(--md-divider-color, var(--md-sys-color-outline-variant, #cac4d0));display:flex;height:var(--md-divider-thickness, 1px);width:100%}:host([inset]),:host([inset-start]){padding-inline-start:16px}:host([inset]),:host([inset-end]){padding-inline-end:16px}:host::before{background:currentColor;content:"";height:100%;width:100%}@media(forced-colors: active){:host::before{background:CanvasText}}
+const styles$4 = i$5 `:host{box-sizing:border-box;color:var(--md-divider-color, var(--md-sys-color-outline-variant, #cac4d0));display:flex;height:var(--md-divider-thickness, 1px);width:100%}:host([inset]),:host([inset-start]){padding-inline-start:16px}:host([inset]),:host([inset-end]){padding-inline-end:16px}:host::before{background:currentColor;content:"";height:100%;width:100%}@media(forced-colors: active){:host::before{background:CanvasText}}
 `;
 
 /*
@@ -2753,7 +2895,7 @@ const styles$1 = i$4 `:host{box-sizing:border-box;color:var(--md-divider-color, 
  */
 class OscdDivider extends Divider {
 }
-OscdDivider.styles = [styles$1];
+OscdDivider.styles = [styles$4];
 
 /**
  * @license
@@ -2879,7 +3021,7 @@ const DIALOG_DEFAULT_CLOSE_ANIMATION = {
  * SPDX-License-Identifier: Apache-2.0
  */
 // Separate variable needed for closure.
-const dialogBaseClass = mixinDelegatesAria(i$1);
+const dialogBaseClass = mixinDelegatesAria(i$2);
 /**
  * A dialog component.
  *
@@ -3335,19 +3477,19 @@ class Dialog extends dialogBaseClass {
     }
 }
 __decorate([
-    n({ type: Boolean })
+    n$1({ type: Boolean })
 ], Dialog.prototype, "open", null);
 __decorate([
-    n({ type: Boolean })
+    n$1({ type: Boolean })
 ], Dialog.prototype, "quick", void 0);
 __decorate([
-    n({ attribute: false })
+    n$1({ attribute: false })
 ], Dialog.prototype, "returnValue", void 0);
 __decorate([
-    n()
+    n$1()
 ], Dialog.prototype, "type", void 0);
 __decorate([
-    n({ type: Boolean, attribute: 'no-focus-trap' })
+    n$1({ type: Boolean, attribute: 'no-focus-trap' })
 ], Dialog.prototype, "noFocusTrap", void 0);
 __decorate([
     e$2('dialog')
@@ -3425,7 +3567,7 @@ function isFocusable(element) {
  * SPDX-License-Identifier: Apache-2.0
  */
 // Generated stylesheet for ./dialog/internal/dialog-styles.css.
-const styles = i$4 `:host{border-start-start-radius:var(--md-dialog-container-shape-start-start, var(--md-dialog-container-shape, var(--md-sys-shape-corner-extra-large, 28px)));border-start-end-radius:var(--md-dialog-container-shape-start-end, var(--md-dialog-container-shape, var(--md-sys-shape-corner-extra-large, 28px)));border-end-end-radius:var(--md-dialog-container-shape-end-end, var(--md-dialog-container-shape, var(--md-sys-shape-corner-extra-large, 28px)));border-end-start-radius:var(--md-dialog-container-shape-end-start, var(--md-dialog-container-shape, var(--md-sys-shape-corner-extra-large, 28px)));display:contents;margin:auto;max-height:min(560px,100% - 48px);max-width:min(560px,100% - 48px);min-height:140px;min-width:280px;position:fixed;height:fit-content;width:fit-content}dialog{background:rgba(0,0,0,0);border:none;border-radius:inherit;flex-direction:column;height:inherit;margin:inherit;max-height:inherit;max-width:inherit;min-height:inherit;min-width:inherit;outline:none;overflow:visible;padding:0;width:inherit}dialog[open]{display:flex}::backdrop{background:none}.scrim{background:var(--md-sys-color-scrim, #000);display:none;inset:0;opacity:32%;pointer-events:none;position:fixed;z-index:1}:host([open]) .scrim{display:flex}h2{all:unset;align-self:stretch}.headline{align-items:center;color:var(--md-dialog-headline-color, var(--md-sys-color-on-surface, #1d1b20));display:flex;flex-direction:column;font-family:var(--md-dialog-headline-font, var(--md-sys-typescale-headline-small-font, var(--md-ref-typeface-brand, Roboto)));font-size:var(--md-dialog-headline-size, var(--md-sys-typescale-headline-small-size, 1.5rem));line-height:var(--md-dialog-headline-line-height, var(--md-sys-typescale-headline-small-line-height, 2rem));font-weight:var(--md-dialog-headline-weight, var(--md-sys-typescale-headline-small-weight, var(--md-ref-typeface-weight-regular, 400)));position:relative}slot[name=headline]::slotted(*){align-items:center;align-self:stretch;box-sizing:border-box;display:flex;gap:8px;padding:24px 24px 0}.icon{display:flex}slot[name=icon]::slotted(*){color:var(--md-dialog-icon-color, var(--md-sys-color-secondary, #625b71));fill:currentColor;font-size:var(--md-dialog-icon-size, 24px);margin-top:24px;height:var(--md-dialog-icon-size, 24px);width:var(--md-dialog-icon-size, 24px)}.has-icon slot[name=headline]::slotted(*){justify-content:center;padding-top:16px}.scrollable slot[name=headline]::slotted(*){padding-bottom:16px}.scrollable.has-headline slot[name=content]::slotted(*){padding-top:8px}.container{border-radius:inherit;display:flex;flex-direction:column;flex-grow:1;overflow:hidden;position:relative;transform-origin:top}.container::before{background:var(--md-dialog-container-color, var(--md-sys-color-surface-container-high, #ece6f0));border-radius:inherit;content:"";inset:0;position:absolute}.scroller{display:flex;flex:1;flex-direction:column;overflow:hidden;z-index:1}.scrollable .scroller{overflow-y:scroll}.content{color:var(--md-dialog-supporting-text-color, var(--md-sys-color-on-surface-variant, #49454f));font-family:var(--md-dialog-supporting-text-font, var(--md-sys-typescale-body-medium-font, var(--md-ref-typeface-plain, Roboto)));font-size:var(--md-dialog-supporting-text-size, var(--md-sys-typescale-body-medium-size, 0.875rem));line-height:var(--md-dialog-supporting-text-line-height, var(--md-sys-typescale-body-medium-line-height, 1.25rem));flex:1;font-weight:var(--md-dialog-supporting-text-weight, var(--md-sys-typescale-body-medium-weight, var(--md-ref-typeface-weight-regular, 400)));height:min-content;position:relative}slot[name=content]::slotted(*){box-sizing:border-box;padding:24px}.anchor{position:absolute}.top.anchor{top:0}.bottom.anchor{bottom:0}.actions{position:relative}slot[name=actions]::slotted(*){box-sizing:border-box;display:flex;gap:8px;justify-content:flex-end;padding:16px 24px 24px}.has-actions slot[name=content]::slotted(*){padding-bottom:8px}md-divider{display:none;position:absolute}.has-headline.show-top-divider .headline md-divider,.has-actions.show-bottom-divider .actions md-divider{display:flex}.headline md-divider{bottom:0}.actions md-divider{top:0}@media(forced-colors: active){dialog{outline:2px solid WindowText}}
+const styles$3 = i$5 `:host{border-start-start-radius:var(--md-dialog-container-shape-start-start, var(--md-dialog-container-shape, var(--md-sys-shape-corner-extra-large, 28px)));border-start-end-radius:var(--md-dialog-container-shape-start-end, var(--md-dialog-container-shape, var(--md-sys-shape-corner-extra-large, 28px)));border-end-end-radius:var(--md-dialog-container-shape-end-end, var(--md-dialog-container-shape, var(--md-sys-shape-corner-extra-large, 28px)));border-end-start-radius:var(--md-dialog-container-shape-end-start, var(--md-dialog-container-shape, var(--md-sys-shape-corner-extra-large, 28px)));display:contents;margin:auto;max-height:min(560px,100% - 48px);max-width:min(560px,100% - 48px);min-height:140px;min-width:280px;position:fixed;height:fit-content;width:fit-content}dialog{background:rgba(0,0,0,0);border:none;border-radius:inherit;flex-direction:column;height:inherit;margin:inherit;max-height:inherit;max-width:inherit;min-height:inherit;min-width:inherit;outline:none;overflow:visible;padding:0;width:inherit}dialog[open]{display:flex}::backdrop{background:none}.scrim{background:var(--md-sys-color-scrim, #000);display:none;inset:0;opacity:32%;pointer-events:none;position:fixed;z-index:1}:host([open]) .scrim{display:flex}h2{all:unset;align-self:stretch}.headline{align-items:center;color:var(--md-dialog-headline-color, var(--md-sys-color-on-surface, #1d1b20));display:flex;flex-direction:column;font-family:var(--md-dialog-headline-font, var(--md-sys-typescale-headline-small-font, var(--md-ref-typeface-brand, Roboto)));font-size:var(--md-dialog-headline-size, var(--md-sys-typescale-headline-small-size, 1.5rem));line-height:var(--md-dialog-headline-line-height, var(--md-sys-typescale-headline-small-line-height, 2rem));font-weight:var(--md-dialog-headline-weight, var(--md-sys-typescale-headline-small-weight, var(--md-ref-typeface-weight-regular, 400)));position:relative}slot[name=headline]::slotted(*){align-items:center;align-self:stretch;box-sizing:border-box;display:flex;gap:8px;padding:24px 24px 0}.icon{display:flex}slot[name=icon]::slotted(*){color:var(--md-dialog-icon-color, var(--md-sys-color-secondary, #625b71));fill:currentColor;font-size:var(--md-dialog-icon-size, 24px);margin-top:24px;height:var(--md-dialog-icon-size, 24px);width:var(--md-dialog-icon-size, 24px)}.has-icon slot[name=headline]::slotted(*){justify-content:center;padding-top:16px}.scrollable slot[name=headline]::slotted(*){padding-bottom:16px}.scrollable.has-headline slot[name=content]::slotted(*){padding-top:8px}.container{border-radius:inherit;display:flex;flex-direction:column;flex-grow:1;overflow:hidden;position:relative;transform-origin:top}.container::before{background:var(--md-dialog-container-color, var(--md-sys-color-surface-container-high, #ece6f0));border-radius:inherit;content:"";inset:0;position:absolute}.scroller{display:flex;flex:1;flex-direction:column;overflow:hidden;z-index:1}.scrollable .scroller{overflow-y:scroll}.content{color:var(--md-dialog-supporting-text-color, var(--md-sys-color-on-surface-variant, #49454f));font-family:var(--md-dialog-supporting-text-font, var(--md-sys-typescale-body-medium-font, var(--md-ref-typeface-plain, Roboto)));font-size:var(--md-dialog-supporting-text-size, var(--md-sys-typescale-body-medium-size, 0.875rem));line-height:var(--md-dialog-supporting-text-line-height, var(--md-sys-typescale-body-medium-line-height, 1.25rem));flex:1;font-weight:var(--md-dialog-supporting-text-weight, var(--md-sys-typescale-body-medium-weight, var(--md-ref-typeface-weight-regular, 400)));height:min-content;position:relative}slot[name=content]::slotted(*){box-sizing:border-box;padding:24px}.anchor{position:absolute}.top.anchor{top:0}.bottom.anchor{bottom:0}.actions{position:relative}slot[name=actions]::slotted(*){box-sizing:border-box;display:flex;gap:8px;justify-content:flex-end;padding:16px 24px 24px}.has-actions slot[name=content]::slotted(*){padding-bottom:8px}md-divider{display:none;position:absolute}.has-headline.show-top-divider .headline md-divider,.has-actions.show-bottom-divider .actions md-divider{display:flex}.headline md-divider{bottom:0}.actions md-divider{top:0}@media(forced-colors: active){dialog{outline:2px solid WindowText}}
 `;
 
 /**
@@ -3470,7 +3612,1734 @@ class OscdDialog extends ScopedElementsMixin(Dialog) {
 OscdDialog.scopedElements = {
     'md-divider': OscdDivider,
 };
-OscdDialog.styles = [styles];
+OscdDialog.styles = [styles$3];
+
+/**
+ * @license
+ * Copyright 2022 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
+ * An icon element.
+ */
+let Icon$1 = class Icon extends i$2 {
+    render() {
+        return b `<slot></slot>`;
+    }
+    connectedCallback() {
+        super.connectedCallback();
+        const ariaHidden = this.getAttribute('aria-hidden');
+        if (ariaHidden === 'false') {
+            // Allow the user to set `aria-hidden="false"` to create an icon that is
+            // announced by screenreaders.
+            this.removeAttribute('aria-hidden');
+            return;
+        }
+        // Needed for VoiceOver, which will create a "group" if the element is a
+        // sibling to other content.
+        this.setAttribute('aria-hidden', 'true');
+    }
+};
+
+const elementIcon = w `<svg style="width:24px;height:24px" viewBox="0 0 24 24">
+<path fill="currentColor" d="M9,7H15V9H11V11H15V13H11V15H15V17H9V7M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />
+</svg>`;
+const attributeIcon = w `<svg viewBox="0 0 24 24">
+<path fill="currentColor" d="M11,7H13A2,2 0 0,1 15,9V17H13V13H11V17H9V9A2,2 0 0,1 11,7M11,9V11H13V9H11M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2Z" />
+</svg>`;
+const contentIcon = w `<svg viewBox="0 0 24 24">
+<path fill="currentColor" d="M11,7H13A2,2 0 0,1 15,9V10H13V9H11V15H13V14H15V15A2,2 0 0,1 13,17H11A2,2 0 0,1 9,15V9A2,2 0 0,1 11,7M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />
+</svg>`;
+
+const editIcon = w `<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 25 25"
+>
+  <path
+    d="M14.06 9.02l.92.92L5.92 19H5v-.92l9.06-9.06M17.66 3c-.25 0-.51.1-.7.29l-1.83 1.83 3.75 3.75 1.83-1.83c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.2-.2-.45-.29-.71-.29zm-3.6 3.19L3 17.25V21h3.75L17.81 9.94l-3.75-3.75z"
+    stroke="currentColor"
+    fill="transparent"
+    stroke-width="1.5"
+    stroke-linecap="round"
+  />
+</svg>`;
+const pathsSVG = {
+    action: w `<path d="M0 0h24v24H0z" fill="none"></path><path d="M13 3c-4.97 0-9
+  4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7
+  7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0
+  9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z" fill="currentColor"></path>`,
+    dAIcon: w `<path fill="currentColor" d="m4.2 0c-2.31 0-4.2 1.89-4.2 4.2v11.6c0 2.31 1.89 4.2 4.2 4.2h18.1c2.31 0 4.2-1.89 4.2-4.2v-11.6c0-2.31-1.89-4.2-4.2-4.2zm0 1.89h18.1c1.29 0 2.3 1.01 2.3 2.3v11.6c0 1.29-1.01 2.31-2.3 2.31h-18.1c-1.29 0-2.3-1.01-2.3-2.31v-11.6c0-1.29 1.01-2.3 2.3-2.3z"/><path stroke="none" fill="currentColor" d="m12.5 9.94q0 1.55-0.509 2.71-0.503 1.15-1.43 1.76-0.923 0.611-2.12 0.611h-3.37v-10h3.02q2.11 0 3.26 1.28 1.15 1.27 1.15 3.65zm-1.76 0q0-1.61-0.698-2.46-0.698-0.852-1.99-0.852h-1.24v6.77h1.48q1.12 0 1.79-0.931 0.663-0.931 0.663-2.53z"/><path stroke="none" fill="currentColor" d="m19.7 15-0.74-2.56h-3.18l-0.74 2.56h-1.75l3.04-10h2.06l3.03 10zm-1.13-4.13-0.823-2.88-0.379-1.46q-0.0947 0.412-0.178 0.739-0.0829 0.327-1.02 3.59z"/>`,
+    dOIcon: w `<path fill="none" stroke="currentColor" stroke-width="1.89" d="m4.2 0.945h18.1c1.8 0 3.25 1.45 3.25 3.25v11.6c0 1.8-1.45 3.25-3.25 3.25h-18.1c-1.8 0-3.25-1.45-3.25-3.25v-11.6c0-1.8 1.45-3.25 3.25-3.25z"/><path stroke="none" fill="currentColor" d="m12.1 9.94q0 1.55-0.509 2.71-0.503 1.15-1.43 1.76-0.923 0.611-2.12 0.611h-3.37v-10h3.02q2.11 0 3.26 1.28 1.15 1.27 1.15 3.65zm-1.76 0q0-1.61-0.698-2.46-0.698-0.852-1.99-0.852h-1.24v6.77h1.48q1.12 0 1.79-0.931 0.663-0.931 0.663-2.53z"/><path stroke="none" fill="currentColor" d="m21.6 9.97q0 1.56-0.515 2.75-0.515 1.19-1.47 1.82-0.959 0.625-2.24 0.625-1.97 0-3.08-1.39-1.11-1.39-1.11-3.81 0-2.41 1.11-3.76t3.1-1.35 3.1 1.36q1.12 1.36 1.12 3.74zm-1.78 0q0-1.62-0.639-2.54-0.639-0.923-1.79-0.923-1.17 0-1.81 0.916-0.639 0.909-0.639 2.54 0 1.65 0.651 2.6 0.657 0.945 1.79 0.945 1.17 0 1.81-0.923 0.639-0.923 0.639-2.62z"/>`,
+    enumIcon: w `<path fill="none" stroke="currentColor" stroke-width="1.89" d="m4.2 0.945h18.1c1.8 0 3.25 1.45 3.25 3.25v11.6c0 1.8-1.45 3.25-3.25 3.25h-18.1c-1.8 0-3.25-1.45-3.25-3.25v-11.6c0-1.8 1.45-3.25 3.25-3.25z"/><path d="m5.37 15v-10h6.56v1.62h-4.81v2.51h4.45v1.62h-4.45v2.64h5.06v1.62z"/><path d="m18.5 15-3.63-7.71q0.107 1.12 0.107 1.8v5.9h-1.55v-10h1.99l3.69 7.77q-0.107-1.07-0.107-1.95v-5.82h1.55v10z"/>`,
+    info: w `<path d="M0 0h24v24H0z" fill="none"></path><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="currentColor"></path>`,
+    warning: w `<path d="M0 0h24v24H0z" fill="none"></path><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" fill="currentColor"></path>`,
+    error: w `<path d="M0 0h24v24H0V0z" fill="none"></path><path d="M15.73 3H8.27L3 8.27v7.46L8.27 21h7.46L21 15.73V8.27L15.73 3zM19 14.9L14.9 19H9.1L5 14.9V9.1L9.1 5h5.8L19 9.1v5.8z" fill="currentColor"></path><path d="M11 7h2v7h-2z" fill="currentColor"></path><circle cx="12" cy="16" r="1" fill="currentColor"></circle>`,
+    gooseIcon: w `<path fill="currentColor" d="M11,7H15V9H11V15H13V11H15V15A2,2 0 0,1 13,17H11A2,2 0 0,1 9,15V9A2,2 0 0,1 11,7M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />`,
+    lNIcon: w `<path stroke="currentColor" stroke-width="1.89" fill="none" d="m4.2 0.945h18.1c1.8 0 3.25 1.45 3.25 3.25v11.6c0 1.8-1.45 3.25-3.25 3.25h-18.1c-1.8 0-3.25-1.45-3.25-3.25v-11.6c0-1.8 1.45-3.25 3.25-3.25z"/><path fill="currentColor" d="m5.71 15v-10h1.75v8.39h4.47v1.62z"/><path fill="currentColor" d="m18.2 15-3.63-7.71q0.107 1.12 0.107 1.8v5.9h-1.55v-10h1.99l3.69 7.77q-0.107-1.07-0.107-1.95v-5.82h1.55v10z"/>`,
+    logIcon: w `<path fill="currentColor" d="M9,7H11V15H15V17H9V7M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />`,
+    reportIcon: w `<path fill="currentColor" d="M9,7H13A2,2 0 0,1 15,9V11C15,11.84 14.5,12.55 13.76,12.85L15,17H13L11.8,13H11V17H9V7M11,9V11H13V9H11M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12C4,16.41 7.58,20 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />`,
+    dataSetIcon: w `<path fill="currentColor" d="M9,7H12.5A3.5,3.5 0 0,1 16,10.5V13.5A3.5,3.5 0 0,1 12.5,17H9V7M11,9V15H12.5A1.5,1.5 0 0,0 14,13.5V10.5A1.5,1.5 0 0,0 12.5,9H11M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12C4,16.41 7.58,20 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />`,
+    smvIcon: w `<path fill="currentColor" d="M11,7H15V9H11V11H13A2,2 0 0,1 15,13V15A2,2 0 0,1 13,17H9V15H13V13H11A2,2 0 0,1 9,11V9A2,2 0 0,1 11,7M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />`,
+    reset: w ``,
+};
+const gooseIcon = w `<svg style="width:24px;height:24px" viewBox="0 0 24 24">${pathsSVG['gooseIcon']}</svg>`;
+const reportIcon = w `<svg style="width:24px;height:24px" viewBox="0 0 24 24">${pathsSVG['reportIcon']}</svg>`;
+const smvIcon = w `<svg style="width:24px;height:24px" viewBox="0 0 24 24">${pathsSVG['smvIcon']}</svg>`;
+const dataSetIcon = w `<svg style="width:24px;height:24px" viewBox="0 0 24 24">${pathsSVG['dataSetIcon']}</svg>`;
+const logIcon = w `<svg style="width:24px;height:24px" viewBox="0 0 24 24">${pathsSVG['logIcon']}</svg>`;
+const inputIcon = w `<svg style="width:24px;height:24px" viewBox="0 0 24 24">
+<path fill="currentColor" d="M14,12L10,8V11H2V13H10V16M20,18V6C20,4.89 19.1,4 18,4H6A2,2 0 0,0 4,6V9H6V6H18V18H6V15H4V18A2,2 0 0,0 6,20H18A2,2 0 0,0 20,18Z" />
+</svg>`;
+const clientIcon = w `<svg style="width:24px;height:24px" viewBox="0 0 24 24">
+<path fill="currentColor" d="M21,14V4H3V14H21M21,2A2,2 0 0,1 23,4V16A2,2 0 0,1 21,18H14L16,21V22H8V21L10,18H3C1.89,18 1,17.1 1,16V4C1,2.89 1.89,2 3,2H21M4,5H15V10H4V5M16,5H20V7H16V5M20,8V13H16V8H20M4,11H9V13H4V11M10,11H15V13H10V11Z" />
+</svg>`;
+const disconnect = w `<svg style="width:24px;height:24px" viewBox="0 0 24 24">
+<path fill="currentColor" d="M4,1C2.89,1 2,1.89 2,3V7C2,8.11 2.89,9 4,9H1V11H13V9H10C11.11,9 12,8.11 12,7V3C12,1.89 11.11,1 10,1H4M4,3H10V7H4V3M14,13C12.89,13 12,13.89 12,15V19C12,20.11 12.89,21 14,21H11V23H23V21H20C21.11,21 22,20.11 22,19V15C22,13.89 21.11,13 20,13H14M3.88,13.46L2.46,14.88L4.59,17L2.46,19.12L3.88,20.54L6,18.41L8.12,20.54L9.54,19.12L7.41,17L9.54,14.88L8.12,13.46L6,15.59L3.88,13.46M14,15H20V19H14V15Z" />
+</svg>`;
+const networkConfigIcon = w `<svg
+  xmlns="http://www.w3.org/2000/svg"
+  slot="icon"
+  width="25px"
+  height="25px"
+  style="margin-bottom:0px;"
+>
+  <rect
+    width="8"
+    height="8"
+    x="8.5"
+    y="2"
+    rx="1"
+    ry="1"
+    fill="transparent"
+    stroke="currentColor"
+    stroke-width="1.5"
+  />
+  <rect
+    width="8"
+    height="8"
+    x="2.5"
+    y="15"
+    rx="1"
+    ry="1"
+    fill="transparent"
+    stroke="currentColor"
+    stroke-width="1.5"
+  />
+  <rect
+    width="8"
+    height="8"
+    x="15"
+    y="15"
+    rx="1"
+    ry="1"
+    fill="transparent"
+    stroke="currentColor"
+    stroke-width="1.5"
+  />
+
+  <line
+    x1="2"
+    y1="12.5"
+    x2="23"
+    y2="12.5"
+    stroke="currentColor"
+    stroke-linecap="round"
+    stroke-width="1.5"
+  />
+  <line
+    x1="12.5"
+    y1="10"
+    x2="12.5"
+    y2="12.5"
+    stroke="currentColor"
+    stroke-width="1.5"
+  />
+  <line
+    x1="6.5"
+    y1="12.5"
+    x2="6.5"
+    y2="15"
+    stroke="currentColor"
+    stroke-width="1.5"
+  />
+  <line
+    x1="19"
+    y1="12.5"
+    x2="19"
+    y2="15"
+    stroke="currentColor"
+    stroke-width="1.5"
+  />
+</svg>`;
+const zeroLineIcon = w `<svg
+  xmlns="http://www.w3.org/2000/svg"
+  slot="icon"
+  viewBox="0 0 25 25"
+>
+  <path
+    d="M 2 9 L 12.5 2 L 23 9 L 21 9 L 21 21 L 4 21 L 4 9 Z"
+    fill="transparent"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M 11 7 L 17.5 7 L 13.5 11 L 16.5 11 L 10 19 L 11.5 13 L 8.5 13 Z "
+    fill="currentColor"
+  />
+</svg>`;
+const voltageLevelIcon = w `<svg
+  id="Laag_1"
+  data-name="Laag 1"
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 24 24"
+>
+  <defs>
+    <style>
+      .cls-1 {
+        fill: currentColor;
+      }
+
+      .cls-1,
+      .cls-2 {
+        stroke-width: 0px;
+      }
+
+      .cls-2 {
+        fill: currentColor;
+        opacity: 0;
+      }
+    </style>
+  </defs>
+  <path
+    class="cls-1"
+    d="M11.13,20.06L3.63,6.93c-.27-.48-.11-1.09.37-1.36h0c.48-.27,1.09-.11,1.36.37l6.64,11.61,6.64-11.61c.27-.48.88-.65,1.36-.37h0c.48.27.65.88.37,1.36l-7.5,13.13c-.38.67-1.35.67-1.74,0Z"
+  />
+  <rect class="cls-2" width="24" height="24" />
+</svg>`;
+const bayIcon = w `<svg
+  id="Laag_1"
+  data-name="Laag 1"
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 24 24"
+>
+  <defs>
+    <style>
+      .cls-1 {
+        fill: currentColor;
+        stroke-width: 0px;
+      }
+    </style>
+  </defs>
+  <path
+    class="cls-1"
+    d="M7.75,8c0-.41-.34-.75-.75-.75s-.75.34-.75.75v1.5h-1.25c0,.84.52,1.55,1.25,1.85v8.65h1.5v-8.65c.73-.3,1.25-1.01,1.25-1.85h-1.25v-1.5Z"
+  />
+  <path
+    class="cls-1"
+    d="M12.75,8c0-.41-.34-.75-.75-.75s-.75.34-.75.75v1.5h-1.25c0,.84.52,1.55,1.25,1.85v8.65h1.5v-8.65c.73-.3,1.25-1.01,1.25-1.85h-1.25v-1.5Z"
+  />
+  <path
+    class="cls-1"
+    d="M17.75,8c0-.41-.34-.75-.75-.75s-.75.34-.75.75v1.5h-1.25c0,.84.52,1.55,1.25,1.85v8.65h1.5v-8.65c.73-.3,1.25-1.01,1.25-1.85h-1.25v-1.5Z"
+  />
+  <path
+    class="cls-1"
+    d="M20,4H4c-1.1,0-2,.9-2,2v4c0,1.1.9,2,2,2v-6h16v6c1.1,0,2-.9,2-2v-4c0-1.1-.9-2-2-2Z"
+  />
+</svg>`;
+const disconnectorIcon = w `<svg
+  id="Laag_1"
+  data-name="Laag 1"
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 24 24"
+>
+  <defs>
+    <style>
+      .cls-1 {
+        fill: currentColor;
+      }
+
+      .cls-1,
+      .cls-2 {
+        stroke-width: 0px;
+      }
+
+      .cls-2 {
+        fill: #fff;
+        opacity: 0;
+      }
+    </style>
+  </defs>
+  <g>
+    <path
+      class="cls-1"
+      d="M12.71,15.29l-6.79-6.79c-.39-.39-1.02-.39-1.41,0-.39.39-.39,1.02,0,1.41l6.5,6.5v4.59c0,.55.45,1,1,1s1-.45,1-1v-5c0-.13-.03-.26-.08-.38-.05-.12-.12-.23-.22-.33Z"
+    />
+    <path
+      class="cls-1"
+      d="M14,6h-1v-3c0-.55-.45-1-1-1s-1,.45-1,1v3h-1c-.55,0-1,.45-1,1s.45,1,1,1h4c.55,0,1-.45,1-1s-.45-1-1-1Z"
+    />
+  </g>
+  <rect class="cls-2" width="24" height="24" />
+</svg>`;
+const circuitBreakerIcon = w `<svg
+  id="Laag_1"
+  data-name="Laag 1"
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 24 24"
+>
+  <defs>
+    <style>
+      .cls-1 {
+        fill: currentColor;
+      }
+
+      .cls-1,
+      .cls-2 {
+        stroke-width: 0px;
+      }
+
+      .cls-2 {
+        fill: #fff;
+        opacity: 0;
+      }
+    </style>
+  </defs>
+  <g>
+    <path
+      class="cls-1"
+      d="M12.71,15.29l-6.79-6.79c-.39-.39-1.02-.39-1.41,0-.39.39-.39,1.02,0,1.41l6.5,6.5v4.59c0,.55.45,1,1,1s1-.45,1-1v-5c0-.13-.03-.26-.08-.38-.05-.12-.12-.23-.22-.33Z"
+    />
+    <path
+      class="cls-1"
+      d="M13.41,7l1.29-1.29c.39-.39.39-1.02,0-1.41s-1.02-.39-1.41,0l-1.29,1.29-1.29-1.29c-.39-.39-1.02-.39-1.41,0s-.39,1.02,0,1.41l1.29,1.29-1.29,1.29c-.39.39-.39,1.02,0,1.41.2.2.45.29.71.29s.51-.1.71-.29l1.29-1.29,1.29,1.29c.2.2.45.29.71.29s.51-.1.71-.29c.39-.39.39-1.02,0-1.41l-1.29-1.29Z"
+    />
+  </g>
+  <rect class="cls-2" width="24" height="24" />
+</svg>`;
+const currentTransformerIcon = w `<svg
+  id="Laag_1"
+  data-name="Laag 1"
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 24 24"
+>
+  <defs>
+    <style>
+      .cls-1 {
+        fill: currentColor;
+      }
+
+      .cls-1,
+      .cls-2 {
+        stroke-width: 0px;
+      }
+
+      .cls-2 {
+        fill: #fff;
+        opacity: 0;
+      }
+    </style>
+  </defs>
+  <path
+    class="cls-1"
+    d="M19,12c0-3.53-2.61-6.43-6-6.92v-2.08c0-.55-.45-1-1-1s-1,.45-1,1v2.08c-3.39.49-6,3.39-6,6.92s2.61,6.43,6,6.92v2.08c0,.55.45,1,1,1s1-.45,1-1v-2.08c3.39-.49,6-3.39,6-6.92ZM7,12c0-2.42,1.72-4.44,4-4.9v9.8c-2.28-.46-4-2.48-4-4.9ZM13,16.9V7.1c2.28.46,4,2.48,4,4.9s-1.72,4.44-4,4.9Z"
+  />
+  <rect class="cls-2" width="24" height="24" />
+</svg>`;
+const voltageTransformerIcon = w `<svg
+  id="Laag_1"
+  data-name="Laag 1"
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 24 24"
+>
+  <defs>
+    <style>
+      .cls-1 {
+        fill: currentColor;
+      }
+
+      .cls-1,
+      .cls-2 {
+        stroke-width: 0px;
+      }
+
+      .cls-2 {
+        fill: #fff;
+        opacity: 0;
+      }
+    </style>
+  </defs>
+  <path
+    class="cls-1"
+    d="M17,10c0-2.42-1.72-4.44-4-4.9v-2.1s0-1-1-1-1,1-1,1v2.1c-2.28.46-4,2.48-4,4.9,0,.71.15,1.39.42,2-.27.61-.42,1.29-.42,2,0,2.42,1.72,4.44,4,4.9v1.1h-1c-.55,0-1,.45-1,1s.45,1,1,1h4c.55,0,1-.45,1-1s-.45-1-1-1h-1v-1.1c2.28-.46,4-2.48,4-4.9,0-.71-.15-1.39-.42-2,.27-.61.42-1.29.42-2ZM12,7c1.66,0,3,1.34,3,3,0,0,0,.01,0,.02-.84-.63-1.87-1.02-3-1.02s-2.16.39-3,1.02c0,0,0-.01,0-.02,0-1.66,1.34-3,3-3ZM14.22,12c-.55.61-1.34,1-2.22,1s-1.67-.39-2.22-1c.55-.61,1.34-1,2.22-1s1.67.39,2.22,1ZM12,17c-1.66,0-3-1.34-3-3,0,0,0-.01,0-.02.84.63,1.87,1.02,3,1.02s2.16-.39,3-1.02c0,0,0,.01,0,.02,0,1.66-1.34,3-3,3Z"
+  />
+  <rect class="cls-2" width="24" height="24" />
+</svg>`;
+const earthSwitchIcon = w `<svg
+  id="Laag_1"
+  data-name="Laag 1"
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 24 24"
+>
+  <defs>
+    <style>
+      .cls-1 {
+        fill: currentColor;
+      }
+
+      .cls-1,
+      .cls-2 {
+        stroke-width: 0px;
+      }
+
+      .cls-2 {
+        fill: #fff;
+        opacity: 0;
+      }
+    </style>
+  </defs>
+  <g>
+    <path
+      class="cls-1"
+      d="M13,20h-2c-.55,0-1,.45-1,1s.45,1,1,1h2c.55,0,1-.45,1-1s-.45-1-1-1Z"
+    />
+    <path
+      class="cls-1"
+      d="M15,16h-2v-5c0-.13-.03-.26-.08-.38-.05-.12-.12-.23-.22-.33L5.91,3.5c-.39-.39-1.02-.39-1.41,0-.39.39-.39,1.02,0,1.41l6.5,6.5v4.59h-2c-.55,0-1,.45-1,1s.45,1,1,1h6c.55,0,1-.45,1-1s-.45-1-1-1Z"
+    />
+    <path
+      class="cls-1"
+      d="M10,4h4c.55,0,1-.45,1-1s-.45-1-1-1h-4c-.55,0-1,.45-1,1s.45,1,1,1Z"
+    />
+  </g>
+  <rect class="cls-2" width="24" height="24" />
+</svg>`;
+const generalConductingEquipmentIcon = w `<svg
+  id="Laag_1"
+  data-name="Laag 1"
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 24 24"
+>
+  <defs>
+    <style>
+      .cls-1 {
+        fill: currentColor;
+        stroke-width: 0px;
+      }
+    </style>
+  </defs>
+  <path
+    class="cls-1"
+    d="M20.41,3.59c-.78-.78-2.05-.78-2.83,0-.59.59-.73,1.47-.43,2.19l-1.49,1.49c-1.02-.79-2.29-1.27-3.67-1.27-3.31,0-6,2.69-6,6,0,1.38.48,2.66,1.27,3.67l-1.49,1.49c-.73-.31-1.6-.17-2.19.43-.78.78-.78,2.05,0,2.83.78.78,2.05.78,2.83,0,.59-.59.73-1.47.43-2.19l1.49-1.49c1.02.79,2.29,1.27,3.67,1.27,3.31,0,6-2.69,6-6,0-1.38-.48-2.66-1.27-3.67l1.49-1.49c.73.31,1.6.17,2.19-.43.78-.78.78-2.05,0-2.83ZM12,16c-2.21,0-4-1.79-4-4s1.79-4,4-4,4,1.79,4,4-1.79,4-4,4Z"
+  />
+</svg>`;
+const connectivityNodeIcon = w `<svg
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <circle
+    stroke="currentColor"
+    fill="currentColor"
+    stroke-width="1"
+    cx="12.5"
+    cy="12.5"
+    r="5"
+  />
+</svg>`;
+const powerTransformerTwoWindingIcon = w `<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 25 25"
+>
+  <line
+    x1="12.5"
+    y1="2"
+    x2="12.5"
+    y2="5"
+    stroke="currentColor"
+    stroke-width="1.5"
+    stroke-linecap="round"
+  />
+  <circle
+    cx="12.5"
+    cy="10"
+    r="5"
+    stroke="currentColor"
+    fill="transparent"
+    stroke-width="1.5"
+    stroke-linecap="round"
+  />
+  <circle
+    cx="12.5"
+    cy="15"
+    r="5"
+    stroke="currentColor"
+    fill="transparent"
+    stroke-width="1.5"
+    stroke-linecap="round"
+  />
+  <line
+    x1="12.5"
+    y1="20"
+    x2="12.5"
+    y2="23"
+    stroke="currentColor"
+    stroke-width="1.5"
+    stroke-linecap="round"
+  />
+</svg>`;
+const openSCDIcon = w ` <svg
+  xmlns="http://www.w3.org/2000/svg"
+  style="width:100px;height:100px"
+  viewBox="0 0 25 25"
+>
+  <path
+    d="M 2 9 L 12.5 2 L 23 9 L 21 9 L 21 21 L 4 21 L 4 9 Z"
+    fill="#eee8d5"
+    stroke="#6c71c4"
+    stroke-width="2"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M 11 7 L 17.5 7 L 13.5 11 L 16.5 11 L 10 19 L 11.5 13 L 8.5 13 Z "
+    fill="#2aa198"
+  />
+</svg>`;
+const sizableSmvIcon = w `
+  <svg viewBox="0 0 24 24">
+    <path fill="currentColor" d="M11,7H15V9H11V11H13A2,2 0 0,1 15,13V15A2,2 0 0,1 13,17H9V15H13V13H11A2,2 0 0,1 9,11V9A2,2 0 0,1 11,7M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />
+  </svg>`;
+const sizableGooseIcon = w `<svg viewBox="0 0 24 24">
+<path fill="currentColor" d="M11,7H15V9H11V15H13V11H15V15A2,2 0 0,1 13,17H11A2,2 0 0,1 9,15V9A2,2 0 0,1 11,7M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />
+</svg>`;
+const substationIcon = w `<svg id="Laag_1" data-name="Laag 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+<defs>
+  <style>
+    .cls-1 {
+      fill: currentColor;
+    }
+
+    .cls-1, .cls-2 {
+      stroke-width: 0px;
+    }
+
+    .cls-2 {
+      fill: currentColor;
+      opacity: 0;
+    }
+  </style>
+</defs>
+<g>
+  <path class="cls-1" d="M19.3,7.94l-6-5.14c-.75-.64-1.85-.65-2.6,0l-6,5.14c-.44.38-.7.93-.7,1.52v9.54c0,1.1.9,2,2,2h12c1.1,0,2-.9,2-2v-9.54c0-.58-.25-1.14-.7-1.52ZM18,19H6v-9.54l6-5.14,6,5.14v9.54Z"/>
+  <path class="cls-1" d="M11.57,7.74l-3,5c-.09.15-.09.35,0,.5.09.16.26.25.44.25h2v3.5c0,.22.15.42.37.48.04.01.09.02.13.02.17,0,.34-.09.43-.24l3-5c.09-.15.09-.35,0-.5-.09-.16-.26-.25-.44-.25h-2v-3.5c0-.22-.15-.42-.37-.48-.22-.06-.45.03-.56.22Z"/>
+</g>
+<rect class="cls-2" y="0" width="24" height="24"/>
+</svg>`;
+const lineIcon = w `<svg id="Laag_1" data-name="Laag 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+<defs>
+  <style>
+    .cls-1 {
+      fill: currentColor;
+    }
+
+    .cls-1, .cls-2 {
+      stroke-width: 0px;
+    }
+
+    .cls-2 {
+      fill: currentColor;
+      opacity: 0;
+    }
+  </style>
+</defs>
+<path class="cls-1" d="M14.39,11.93l-1.39.58v-1.84l2.15-.89c.51-.21.75-.8.54-1.31-.21-.51-.8-.75-1.31-.54l-1.39.58V3c0-.55-.45-1-1-1s-1,.45-1,1v6.33l-2.15.89c-.51.21-.75.8-.54,1.31.21.51.8.75,1.31.54l1.39-.58v1.84l-2.15.89c-.51.21-.75.8-.54,1.31.21.51.8.75,1.31.54l1.39-.58v5.5c0,.55.45,1,1,1s1-.45,1-1v-6.33l2.15-.89c.51-.21.75-.8.54-1.31-.21-.51-.8-.75-1.31-.54Z"/>
+<rect class="cls-2" width="24" height="24"/>
+</svg>`;
+const processIcon = w `<svg id="Laag_1" data-name="Laag 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+<defs>
+  <style>
+    .cls-1 {
+      fill: currentColor;
+    }
+
+    .cls-1, .cls-2 {
+      stroke-width: 0px;
+    }
+
+    .cls-2 {
+      fill: currentColor;
+      opacity: 0;
+    }
+  </style>
+</defs>
+<path class="cls-1" d="M18.71,15.29c-.39-.39-1.02-.39-1.41,0s-.39,1.02,0,1.41l.29.29h-5.59c0-1.1-.9-2-2-2h-2c-1.01,0-1.84.76-1.97,1.74-.61-.34-1.03-.99-1.03-1.74,0-1.1.9-2,2-2h5c0,1.1.9,2,2,2h2c1.1,0,2-.9,2-2v-.14c1.72-.45,3-2,3-3.86,0-2.21-1.79-4-4-4h-5c0-1.1-.9-2-2-2h-2c-1.1,0-2,.9-2,2h-2c-.55,0-1,.45-1,1s.45,1,1,1h2c0,1.1.9,2,2,2h2c1.1,0,2-.9,2-2h5c1.1,0,2,.9,2,2,0,.75-.42,1.39-1.03,1.74-.13-.98-.96-1.74-1.97-1.74h-2c-1.1,0-2,.9-2,2h-5c-2.21,0-4,1.79-4,4,0,1.86,1.28,3.41,3,3.86v.14c0,1.1.9,2,2,2h2c1.1,0,2-.9,2-2h5.59l-.29.29c-.39.39-.39,1.02,0,1.41.2.2.45.29.71.29s.51-.1.71-.29l2-2c.39-.39.39-1.02,0-1.41l-2-2ZM8,7v-2h2v2s-2,0-2,0ZM14,11h2v2s-2,0-2,0v-2ZM8,19v-2h2v2s-2,0-2,0Z"/>
+<rect class="cls-2" y="0" width="24" height="24"/>
+</svg>`;
+const transformerWindingIcon = w `<svg id="Laag_1" data-name="Laag 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+<defs>
+  <style>
+    .cls-1 {
+      fill: currentColor;
+    }
+
+    .cls-1, .cls-2 {
+      stroke-width: 0px;
+    }
+
+    .cls-2 {
+      fill: currentColor;
+      opacity: 0;
+    }
+  </style>
+</defs>
+<g>
+  <path class="cls-1" d="M19,20h-2c-1.21,0-2.18-1.09-1.97-2.34.16-.98,1.09-1.66,2.08-1.66h-.11c.55,0,1-.45,1-1s-.42-.96-.95-.99c.04,0,.08-.01.12-.01h-.17c-1.21,0-2.18-1.09-1.97-2.34.16-.98,1.09-1.66,2.08-1.66h-.11c.55,0,1-.45,1-1s-.42-.96-.95-.99c.04,0,.08-.01.12-.01h-.17c-1.21,0-2.18-1.09-1.97-2.34.16-.98,1.09-1.66,2.08-1.66h1.89c.55,0,1-.45,1-1s-.45-1-1-1h-1.83c-2.09,0-3.95,1.53-4.15,3.61-.13,1.37.44,2.59,1.38,3.41-.76.64-1.28,1.55-1.38,2.59-.13,1.37.44,2.59,1.38,3.41-.76.64-1.28,1.55-1.38,2.59-.23,2.39,1.64,4.39,3.98,4.39h2c.55,0,1-.45,1-1s-.45-1-1-1Z"/>
+  <path class="cls-1" d="M10.98,6.39c.23-2.39-1.64-4.39-3.98-4.39h-2c-.55,0-1,.45-1,1s.45,1,1,1h2c1.21,0,2.18,1.09,1.97,2.34-.16.98-1.09,1.66-2.08,1.66h.11c-.55,0-1,.45-1,1s.42.96.95.99c-.04,0-.08.01-.12.01h.17c1.21,0,2.18,1.09,1.97,2.34-.16.98-1.09,1.66-2.08,1.66h.11c-.55,0-1,.45-1,1,0,.28.11.53.29.71.17.17.4.27.65.28h0s.03.01.05.01c1.21,0,2.18,1.09,1.97,2.34-.16.98-1.09,1.66-2.08,1.66h-1.89c-.55,0-1,.45-1,1s.45,1,1,1h1.83c2.09,0,3.95-1.53,4.15-3.61.13-1.37-.44-2.59-1.38-3.41.76-.64,1.28-1.55,1.38-2.59.13-1.37-.44-2.59-1.38-3.41.76-.64,1.28-1.55,1.38-2.59Z"/>
+  <path class="cls-1" d="M6.83,16h.17s-.03,0-.05-.01c-.04,0-.08.01-.12.01Z"/>
+</g>
+<rect class="cls-2" width="24" height="24"/>
+</svg>`;
+
+const accessPointIcon = w `<svg style="width:24px;height:24px" viewBox="0 0 24 24">
+<path fill="currentColor" d="M4.93,4.93C3.12,6.74 2,9.24 2,12C2,14.76 3.12,17.26 4.93,19.07L6.34,17.66C4.89,16.22 4,14.22 4,12C4,9.79 4.89,7.78 6.34,6.34L4.93,4.93M19.07,4.93L17.66,6.34C19.11,7.78 20,9.79 20,12C20,14.22 19.11,16.22 17.66,17.66L19.07,19.07C20.88,17.26 22,14.76 22,12C22,9.24 20.88,6.74 19.07,4.93M7.76,7.76C6.67,8.85 6,10.35 6,12C6,13.65 6.67,15.15 7.76,16.24L9.17,14.83C8.45,14.11 8,13.11 8,12C8,10.89 8.45,9.89 9.17,9.17L7.76,7.76M16.24,7.76L14.83,9.17C15.55,9.89 16,10.89 16,12C16,13.11 15.55,14.11 14.83,14.83L16.24,16.24C17.33,15.15 18,13.65 18,12C18,10.35 17.33,8.85 16.24,7.76M12,10A2,2 0 0,0 10,12A2,2 0 0,0 12,14A2,2 0 0,0 14,12A2,2 0 0,0 12,10Z" />
+</svg>`;
+const serverIcon = w `<svg style="width:24px;height:24px" viewBox="0 0 24 24">
+<path fill="currentColor" d="M4,1H20A1,1 0 0,1 21,2V6A1,1 0 0,1 20,7H4A1,1 0 0,1 3,6V2A1,1 0 0,1 4,1M4,9H20A1,1 0 0,1 21,10V14A1,1 0 0,1 20,15H4A1,1 0 0,1 3,14V10A1,1 0 0,1 4,9M4,17H20A1,1 0 0,1 21,18V22A1,1 0 0,1 20,23H4A1,1 0 0,1 3,22V18A1,1 0 0,1 4,17M9,5H10V3H9V5M9,13H10V11H9V13M9,21H10V19H9V21M5,3V5H7V3H5M5,11V13H7V11H5M5,19V21H7V19H5Z" />
+</svg>`;
+const logicalDeviceIcon = w `<svg style="width:24px;height:24px" viewBox="0 0 24 24">
+<path fill="currentColor" d="M13,13H18V15H13M13,9H18V11H13M6.91,7.41L11.5,12L6.91,16.6L5.5,15.18L8.68,12L5.5,8.82M5,3C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3H5Z" />
+</svg>`;
+
+const systemLogicalNode = w `<svg viewBox="0 0 24 24">
+    <path fill="currentColor" d="M9,7H11V15H15V17H9V7M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />
+</svg>`;
+const automationLogicalNode = w `<svg viewBox="0 0 24 24">
+    <path fill="currentColor" d="M11,7H13A2,2 0 0,1 15,9V17H13V13H11V17H9V9A2,2 0 0,1 11,7M11,9V11H13V9H11M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2Z" />
+</svg>`;
+const controlLogicalNode = w `<svg viewBox="0 0 24 24">
+    <path fill="currentColor" d="M11,7H13A2,2 0 0,1 15,9V10H13V9H11V15H13V14H15V15A2,2 0 0,1 13,17H11A2,2 0 0,1 9,15V9A2,2 0 0,1 11,7M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />
+</svg>`;
+const functionalLogicalNode = w `<svg viewBox="0 0 24 24">
+    <path fill="currentColor" d="M9,7H15V9H11V11H14V13H11V17H9V7M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />
+</svg>`;
+const generalLogicalNode = w `<svg  viewBox="0 0 24 24">
+    <path fill="currentColor" d="M11,7H15V9H11V15H13V11H15V15A2,2 0 0,1 13,17H11A2,2 0 0,1 9,15V9A2,2 0 0,1 11,7M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />
+</svg>`;
+const interfacingLogicalNode = w `<svg viewBox="0 0 24 24">
+    <path fill="currentColor" d="M14,7V9H13V15H14V17H10V15H11V9H10V7H14M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />
+</svg>`;
+const nonElectricalLogicalNode = w `<svg viewBox="0 0 24 24">
+<path fill="currentColor" d="M9,7H11V10.33L13,7H15L12,12L15,17H13L11,13.67V17H9V7M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />
+</svg>`;
+const measurementLogicalNode = w `<svg viewBox="0 0 24 24">
+    <path fill="currentColor" d="M9,7H15A2,2 0 0,1 17,9V17H15V9H13V16H11V9H9V17H7V9A2,2 0 0,1 9,7M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />
+</svg>`;
+const protectionLogicalNode = w `<svg viewBox="0 0 24 24">
+    <path fill="currentColor" d="M9,7H13A2,2 0 0,1 15,9V11A2,2 0 0,1 13,13H11V17H9V7M11,9V11H13V9H11M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />
+</svg>`;
+const qualityLogicalNode = w `<svg  viewBox="0 0 24 24">
+    <path fill="currentColor" d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4M11,7H13A2,2 0 0,1 15,9V15A2,2 0 0,1 13,17V19H11V17A2,2 0 0,1 9,15V9A2,2 0 0,1 11,7M11,9V15H13V9H11Z" />
+</svg>`;
+const protectionRelatedLogicalNode = w `<svg viewBox="0 0 24 24">
+    <path fill="currentColor" d="M9,7H13A2,2 0 0,1 15,9V11C15,11.84 14.5,12.55 13.76,12.85L15,17H13L11.8,13H11V17H9V7M11,9V11H13V9H11M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12C4,16.41 7.58,20 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />
+</svg>`;
+const supervisionLogicalNode = w `<svg viewBox="0 0 24 24">
+    <path fill="currentColor" d="M11,7H15V9H11V11H13A2,2 0 0,1 15,13V15A2,2 0 0,1 13,17H9V15H13V13H11A2,2 0 0,1 9,11V9A2,2 0 0,1 11,7M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />
+</svg>`;
+const transformerLogicalNode = w `<svg viewBox="0 0 24 24">
+    <path fill="currentColor" d="M9,7H15V9H13V17H11V9H9V7M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />
+</svg>`;
+const switchgearLogicalNode = w `<svg viewBox="0 0 24 24">
+    <path fill="currentColor" d="M9,7H11L12,9.5L13,7H15L13,12L15,17H13L12,14.5L11,17H9L11,12L9,7M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />
+</svg>`;
+const powerTransformerLogicalNode = w `<svg viewBox="0 0 24 24">
+    <path fill="currentColor" d="M9,7H11L12,10L13,7H15L13,13V17H11V13L9,7M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />
+</svg>`;
+const furtherPowerSystemEquipmentLogicalNode = w `<svg viewBox="0 0 24 24">
+    <path fill="currentColor" d="M9,7H15V9L11,15H15V17H9V15L13,9H9V7M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />
+</svg>`;
+
+/**
+ * @license
+ * Copyright 2026 OMICRON electronics GmbH
+ * SPDX-License-Identifier: Apache-2.0
+ */
+function pathToSvg(type) {
+    return w `<svg
+    xmlns="http://www.w3.org/2000/svg"
+    height="24"
+    viewBox="0 0 26.5 24"
+    width="24"
+  >
+    ${pathsSVG[type]}
+  </svg> `;
+}
+const SCL_ICONS = {
+    elementIcon: elementIcon,
+    attributeIcon: attributeIcon,
+    contentIcon: contentIcon,
+    editIcon: editIcon,
+    gooseIcon: gooseIcon,
+    reportIcon: reportIcon,
+    smvIcon: smvIcon,
+    dataSetIcon: dataSetIcon,
+    logIcon: logIcon,
+    inputIcon: inputIcon,
+    clientIcon: clientIcon,
+    disconnect: disconnect,
+    networkConfigIcon: networkConfigIcon,
+    zeroLineIcon: zeroLineIcon,
+    voltageLevelIcon: voltageLevelIcon,
+    bayIcon: bayIcon,
+    disconnectorIcon: disconnectorIcon,
+    circuitBreakerIcon: circuitBreakerIcon,
+    currentTransformerIcon: currentTransformerIcon,
+    voltageTransformerIcon: voltageTransformerIcon,
+    earthSwitchIcon: earthSwitchIcon,
+    generalConductingEquipmentIcon: generalConductingEquipmentIcon,
+    connectivityNodeIcon: connectivityNodeIcon,
+    powerTransformerTwoWindingIcon: powerTransformerTwoWindingIcon,
+    openSCDIcon: openSCDIcon,
+    sizableSmvIcon: sizableSmvIcon,
+    sizableGooseIcon: sizableGooseIcon,
+    substationIcon: substationIcon,
+    lineIcon: lineIcon,
+    processIcon: processIcon,
+    transformerWindingIcon: transformerWindingIcon,
+    accessPointIcon: accessPointIcon,
+    serverIcon: serverIcon,
+    logicalDeviceIcon: logicalDeviceIcon,
+    systemLogicalNode: systemLogicalNode,
+    automationLogicalNode: automationLogicalNode,
+    controlLogicalNode: controlLogicalNode,
+    functionalLogicalNode: functionalLogicalNode,
+    generalLogicalNode: generalLogicalNode,
+    interfacingLogicalNode: interfacingLogicalNode,
+    nonElectricalLogicalNode: nonElectricalLogicalNode,
+    measurementLogicalNode: measurementLogicalNode,
+    protectionLogicalNode: protectionLogicalNode,
+    qualityLogicalNode: qualityLogicalNode,
+    protectionRelatedLogicalNode: protectionRelatedLogicalNode,
+    supervisionLogicalNode: supervisionLogicalNode,
+    transformerLogicalNode: transformerLogicalNode,
+    switchgearLogicalNode: switchgearLogicalNode,
+    powerTransformerLogicalNode: powerTransformerLogicalNode,
+    furtherPowerSystemEquipmentLogicalNode: furtherPowerSystemEquipmentLogicalNode,
+    ...Object.keys(pathsSVG).reduce((acc, key) => {
+        acc[key] = pathToSvg(key);
+        return acc;
+    }, {}),
+};
+({
+    DAType: pathToSvg('dAIcon'),
+    DOType: pathToSvg('dOIcon'),
+    EnumType: pathToSvg('enumIcon'),
+    LNodeType: pathToSvg('lNIcon'),
+});
+
+/**
+ * @license
+ * Copyright 2026 OMICRON electronics GmbH
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
+ * Internal Icon base class that extends the Material Design Icon with
+ * automatic SCL icon resolution.
+ *
+ * When the text content of the element matches a key in {@link SCL_ICONS},
+ * the corresponding SVG is rendered instead of the default Material Symbols
+ * font ligature. If no match is found the element falls through to the
+ * standard `<slot></slot>` rendering from the Material base class so that
+ * Material Symbols font ligatures continue to work as before.
+ */
+class Icon extends Icon$1 {
+    constructor() {
+        super(...arguments);
+        this._sclName = '';
+    }
+    connectedCallback() {
+        super.connectedCallback();
+        this._updateSclName();
+        this._observer = new MutationObserver(() => {
+            this._updateSclName();
+        });
+        this._observer.observe(this, {
+            characterData: true,
+            subtree: true,
+            childList: true,
+        });
+    }
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        this._observer?.disconnect();
+        this._observer = undefined;
+    }
+    _updateSclName() {
+        const name = (this.textContent ?? '').trim();
+        if (name !== this._sclName) {
+            this._sclName = name;
+            this.requestUpdate();
+        }
+    }
+    render() {
+        const sclSvg = SCL_ICONS[this._sclName];
+        if (sclSvg) {
+            return b `${sclSvg}`;
+        }
+        return super.render();
+    }
+}
+
+/**
+ * @license
+ * Copyright 2024 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+// Generated stylesheet for ./icon/internal/icon-styles.css.
+const styles$2 = i$5 `:host{font-size:var(--md-icon-size, 24px);width:var(--md-icon-size, 24px);height:var(--md-icon-size, 24px);color:inherit;font-variation-settings:inherit;font-weight:400;font-family:var(--md-icon-font, Material Symbols Outlined);display:inline-flex;font-style:normal;place-items:center;place-content:center;line-height:1;overflow:hidden;letter-spacing:normal;text-transform:none;user-select:none;white-space:nowrap;word-wrap:normal;flex-shrink:0;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;-moz-osx-font-smoothing:grayscale}::slotted(svg){fill:currentColor}::slotted(*){height:100%;width:100%}
+`;
+
+/**
+ * @license
+ * Copyright 2022 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
+ * @license
+ * Copyright 2026 OMICRON electronics GmbH
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
+ * Icon component that renders SCL domain icons by name or falls back to
+ * Material Symbols font ligatures.
+ *
+ * @example
+ * ```html
+ * <!-- SCL icon by name -->
+ * <oscd-icon>gooseIcon</oscd-icon>
+ *
+ * <!-- Material Symbols ligature (unchanged) -->
+ * <oscd-icon>edit</oscd-icon>
+ * ```
+ *
+ * @tagname oscd-icon
+ * @final
+ * @suppress {visibility}
+ */
+class OscdIcon extends Icon {
+}
+/** @nocollapse */
+OscdIcon.styles = [styles$2];
+
+/**
+ * @license
+ * Copyright 2020 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+const a=Symbol.for(""),o=t=>{if(t?.r===a)return t?._$litStatic$},i=(t,...r)=>({_$litStatic$:r.reduce((r,e,a)=>r+(t=>{if(void 0!==t._$litStatic$)return t._$litStatic$;throw Error(`Value passed to 'literal' function must be a 'literal' result: ${t}. Use 'unsafeStatic' to pass non-literal values, but\n            take care to ensure page security.`)})(e)+t[a+1],t[0]),r:a}),l=new Map,n=t=>(r,...e)=>{const a=e.length;let s,i;const n=[],u=[];let c,$=0,f=false;for(;$<a;){for(c=r[$];$<a&&void 0!==(i=e[$],s=o(i));)c+=s+r[++$],f=true;$!==a&&u.push(i),n.push(c),$++;}if($===a&&n.push(r[a]),f){const t=n.join("$$lit$$");void 0===(r=l.get(t))&&(n.raw=n,l.set(t,r=n)),e=u;}return t(r,...e)},u=n(b);
+
+/**
+ * @license
+ * Copyright 2022 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
+ * Returns `true` if the given element is in a right-to-left direction.
+ *
+ * @param el Element to determine direction from
+ * @param shouldCheck Optional. If `false`, return `false` without checking
+ *     direction. Determining the direction of `el` is somewhat expensive, so
+ *     this parameter can be used as a conditional guard. Defaults to `true`.
+ */
+function isRtl(el, shouldCheck = true) {
+    return (shouldCheck &&
+        getComputedStyle(el).getPropertyValue('direction').trim() === 'rtl');
+}
+
+/**
+ * @license
+ * Copyright 2018 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+// Separate variable needed for closure.
+const iconButtonBaseClass = mixinDelegatesAria(mixinFormSubmitter(mixinFormAssociated(mixinElementInternals(i$2))));
+/**
+ * A button for rendering icons.
+ *
+ * @fires input {InputEvent} Dispatched when a toggle button toggles --bubbles
+ * --composed
+ * @fires change {Event} Dispatched when a toggle button toggles --bubbles
+ */
+class IconButton extends iconButtonBaseClass {
+    constructor() {
+        super();
+        /**
+         * "Soft-disables" the icon button (disabled but still focusable).
+         *
+         * Use this when an icon button needs increased visibility when disabled. See
+         * https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface/#kbd_disabled_controls
+         * for more guidance on when this is needed.
+         */
+        this.softDisabled = false;
+        /**
+         * Flips the icon if it is in an RTL context at startup.
+         */
+        this.flipIconInRtl = false;
+        /**
+         * Sets the underlying `HTMLAnchorElement`'s `href` resource attribute.
+         */
+        this.href = '';
+        /**
+         * The filename to use when downloading the linked resource.
+         * If not specified, the browser will determine a filename.
+         * This is only applicable when the icon button is used as a link (`href` is set).
+         */
+        this.download = '';
+        /**
+         * Sets the underlying `HTMLAnchorElement`'s `target` attribute.
+         */
+        this.target = '';
+        /**
+         * The `aria-label` of the button when the button is toggleable and selected.
+         */
+        this.ariaLabelSelected = '';
+        /**
+         * When true, the button will toggle between selected and unselected
+         * states
+         */
+        this.toggle = false;
+        /**
+         * Sets the selected state. When false, displays the default icon. When true,
+         * displays the selected icon, or the default icon If no `slot="selected"`
+         * icon is provided.
+         */
+        this.selected = false;
+        this.flipIcon = isRtl(this, this.flipIconInRtl);
+        setupDispatchHooks(this, 'click');
+        this.addEventListener('click', (event) => {
+            // If the button is soft-disabled or a disabled link, we need to
+            // explicitly prevent the click from propagating to other event listeners
+            // as well as prevent the default action. This is because the underlying
+            // `<button>` or `<a>` element is not actually `:disabled`.
+            if (this.softDisabled || (this.disabled && this.href)) {
+                event.stopImmediatePropagation();
+                event.preventDefault();
+                return;
+            }
+            // Save current selected state to toggle, since an external event listener
+            // may also change the selected state on click.
+            const wasSelected = this.selected;
+            afterDispatch(event, () => {
+                if (!this.toggle || this.disabled || event.defaultPrevented) {
+                    return;
+                }
+                this.selected = !wasSelected;
+                this.dispatchEvent(new InputEvent('input', { bubbles: true, composed: true }));
+                // Bubbles but does not compose to mimic native browser <input> & <select>
+                // Additionally, native change event is not an InputEvent.
+                this.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+        });
+    }
+    willUpdate() {
+        // Link buttons cannot be disabled or soft-disabled.
+        if (this.href) {
+            this.disabled = false;
+            this.softDisabled = false;
+        }
+    }
+    render() {
+        const tag = this.href ? i `div` : i `button`;
+        // Needed for closure conformance
+        const { ariaLabel, ariaHasPopup, ariaExpanded } = this;
+        const hasToggledAriaLabel = ariaLabel && this.ariaLabelSelected;
+        const ariaPressedValue = !this.toggle ? A : this.selected;
+        let ariaLabelValue = A;
+        if (!this.href) {
+            ariaLabelValue =
+                hasToggledAriaLabel && this.selected
+                    ? this.ariaLabelSelected
+                    : ariaLabel;
+        }
+        return u `<${tag}
+        class="icon-button ${e(this.getRenderClasses())}"
+        id="button"
+        aria-label="${ariaLabelValue || A}"
+        aria-haspopup="${(!this.href && ariaHasPopup) || A}"
+        aria-expanded="${(!this.href && ariaExpanded) || A}"
+        aria-pressed="${ariaPressedValue}"
+        aria-disabled=${(!this.href && this.softDisabled) || A}
+        ?disabled="${!this.href && this.disabled}">
+        ${this.renderFocusRing()}
+        ${this.renderRipple()}
+        ${!this.selected ? this.renderIcon() : A}
+        ${this.selected ? this.renderSelectedIcon() : A}
+        ${this.href ? this.renderLink() : this.renderTouchTarget()}
+  </${tag}>`;
+    }
+    renderLink() {
+        // Needed for closure conformance
+        const { ariaLabel } = this;
+        return b `
+      <a
+        class="link"
+        id="link"
+        href="${this.href}"
+        download="${this.download || A}"
+        target="${this.target || A}"
+        aria-label="${ariaLabel || A}">
+        ${this.renderTouchTarget()}
+      </a>
+    `;
+    }
+    getRenderClasses() {
+        return {
+            'flip-icon': this.flipIcon,
+            'selected': this.toggle && this.selected,
+        };
+    }
+    renderIcon() {
+        return b `<span class="icon"><slot></slot></span>`;
+    }
+    renderSelectedIcon() {
+        // Use default slot as fallback to not require specifying multiple icons
+        return b `<span class="icon icon--selected"
+      ><slot name="selected"><slot></slot></slot
+    ></span>`;
+    }
+    renderTouchTarget() {
+        return b `<span class="touch"></span>`;
+    }
+    renderFocusRing() {
+        // TODO(b/310046938): use the same id for both elements
+        return b `<md-focus-ring
+      part="focus-ring"
+      for=${this.href ? 'link' : 'button'}></md-focus-ring>`;
+    }
+    renderRipple() {
+        const isRippleDisabled = !this.href && (this.disabled || this.softDisabled);
+        // TODO(b/310046938): use the same id for both elements
+        return b `<md-ripple
+      for=${this.href ? 'link' : A}
+      ?disabled="${isRippleDisabled}"></md-ripple>`;
+    }
+    connectedCallback() {
+        this.flipIcon = isRtl(this, this.flipIconInRtl);
+        super.connectedCallback();
+    }
+}
+/** @nocollapse */
+IconButton.shadowRootOptions = {
+    mode: 'open',
+    delegatesFocus: true,
+};
+__decorate([
+    n$1({ type: Boolean, attribute: 'soft-disabled', reflect: true })
+], IconButton.prototype, "softDisabled", void 0);
+__decorate([
+    n$1({ type: Boolean, attribute: 'flip-icon-in-rtl' })
+], IconButton.prototype, "flipIconInRtl", void 0);
+__decorate([
+    n$1()
+], IconButton.prototype, "href", void 0);
+__decorate([
+    n$1()
+], IconButton.prototype, "download", void 0);
+__decorate([
+    n$1()
+], IconButton.prototype, "target", void 0);
+__decorate([
+    n$1({ attribute: 'aria-label-selected' })
+], IconButton.prototype, "ariaLabelSelected", void 0);
+__decorate([
+    n$1({ type: Boolean })
+], IconButton.prototype, "toggle", void 0);
+__decorate([
+    n$1({ type: Boolean, reflect: true })
+], IconButton.prototype, "selected", void 0);
+__decorate([
+    r()
+], IconButton.prototype, "flipIcon", void 0);
+
+/**
+ * @license
+ * Copyright 2024 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+// Generated stylesheet for ./iconbutton/internal/shared-styles.css.
+const styles$1 = i$5 `:host{display:inline-flex;outline:none;-webkit-tap-highlight-color:rgba(0,0,0,0);height:var(--_container-height);width:var(--_container-width);justify-content:center}:host([touch-target=wrapper]){margin:max(0px,(48px - var(--_container-height))/2) max(0px,(48px - var(--_container-width))/2)}md-focus-ring{--md-focus-ring-shape-start-start: var(--_container-shape-start-start);--md-focus-ring-shape-start-end: var(--_container-shape-start-end);--md-focus-ring-shape-end-end: var(--_container-shape-end-end);--md-focus-ring-shape-end-start: var(--_container-shape-end-start)}:host(:is([disabled],[soft-disabled])){pointer-events:none}.icon-button{place-items:center;background:none;border:none;box-sizing:border-box;cursor:pointer;display:flex;place-content:center;outline:none;padding:0;position:relative;text-decoration:none;user-select:none;z-index:0;flex:1;border-start-start-radius:var(--_container-shape-start-start);border-start-end-radius:var(--_container-shape-start-end);border-end-start-radius:var(--_container-shape-end-start);border-end-end-radius:var(--_container-shape-end-end)}.icon ::slotted(*){font-size:var(--_icon-size);height:var(--_icon-size);width:var(--_icon-size);font-weight:inherit}md-ripple{z-index:-1;border-start-start-radius:var(--_container-shape-start-start);border-start-end-radius:var(--_container-shape-start-end);border-end-start-radius:var(--_container-shape-end-start);border-end-end-radius:var(--_container-shape-end-end)}.flip-icon .icon{transform:scaleX(-1)}.icon{display:inline-flex}.link{display:grid;height:100%;outline:none;place-items:center;position:absolute;width:100%}.touch{position:absolute;height:max(48px,100%);width:max(48px,100%)}:host([touch-target=none]) .touch{display:none}@media(forced-colors: active){:host(:is([disabled],[soft-disabled])){--_disabled-icon-color: GrayText;--_disabled-icon-opacity: 1}}
+`;
+
+/**
+ * @license
+ * Copyright 2024 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+// Generated stylesheet for ./iconbutton/internal/standard-styles.css.
+const styles = i$5 `:host{--_disabled-icon-color: var(--md-icon-button-disabled-icon-color, var(--md-sys-color-on-surface, #1d1b20));--_disabled-icon-opacity: var(--md-icon-button-disabled-icon-opacity, 0.38);--_icon-size: var(--md-icon-button-icon-size, 24px);--_selected-focus-icon-color: var(--md-icon-button-selected-focus-icon-color, var(--md-sys-color-primary, #6750a4));--_selected-hover-icon-color: var(--md-icon-button-selected-hover-icon-color, var(--md-sys-color-primary, #6750a4));--_selected-hover-state-layer-color: var(--md-icon-button-selected-hover-state-layer-color, var(--md-sys-color-primary, #6750a4));--_selected-hover-state-layer-opacity: var(--md-icon-button-selected-hover-state-layer-opacity, 0.08);--_selected-icon-color: var(--md-icon-button-selected-icon-color, var(--md-sys-color-primary, #6750a4));--_selected-pressed-icon-color: var(--md-icon-button-selected-pressed-icon-color, var(--md-sys-color-primary, #6750a4));--_selected-pressed-state-layer-color: var(--md-icon-button-selected-pressed-state-layer-color, var(--md-sys-color-primary, #6750a4));--_selected-pressed-state-layer-opacity: var(--md-icon-button-selected-pressed-state-layer-opacity, 0.12);--_state-layer-height: var(--md-icon-button-state-layer-height, 40px);--_state-layer-shape: var(--md-icon-button-state-layer-shape, var(--md-sys-shape-corner-full, 9999px));--_state-layer-width: var(--md-icon-button-state-layer-width, 40px);--_focus-icon-color: var(--md-icon-button-focus-icon-color, var(--md-sys-color-on-surface-variant, #49454f));--_hover-icon-color: var(--md-icon-button-hover-icon-color, var(--md-sys-color-on-surface-variant, #49454f));--_hover-state-layer-color: var(--md-icon-button-hover-state-layer-color, var(--md-sys-color-on-surface-variant, #49454f));--_hover-state-layer-opacity: var(--md-icon-button-hover-state-layer-opacity, 0.08);--_icon-color: var(--md-icon-button-icon-color, var(--md-sys-color-on-surface-variant, #49454f));--_pressed-icon-color: var(--md-icon-button-pressed-icon-color, var(--md-sys-color-on-surface-variant, #49454f));--_pressed-state-layer-color: var(--md-icon-button-pressed-state-layer-color, var(--md-sys-color-on-surface-variant, #49454f));--_pressed-state-layer-opacity: var(--md-icon-button-pressed-state-layer-opacity, 0.12);--_container-shape-start-start: 0;--_container-shape-start-end: 0;--_container-shape-end-end: 0;--_container-shape-end-start: 0;--_container-height: 0;--_container-width: 0;height:var(--_state-layer-height);width:var(--_state-layer-width)}:host([touch-target=wrapper]){margin:max(0px,(48px - var(--_state-layer-height))/2) max(0px,(48px - var(--_state-layer-width))/2)}md-focus-ring{--md-focus-ring-shape-start-start: var(--_state-layer-shape);--md-focus-ring-shape-start-end: var(--_state-layer-shape);--md-focus-ring-shape-end-end: var(--_state-layer-shape);--md-focus-ring-shape-end-start: var(--_state-layer-shape)}.standard{background-color:rgba(0,0,0,0);color:var(--_icon-color);--md-ripple-hover-color: var(--_hover-state-layer-color);--md-ripple-hover-opacity: var(--_hover-state-layer-opacity);--md-ripple-pressed-color: var(--_pressed-state-layer-color);--md-ripple-pressed-opacity: var(--_pressed-state-layer-opacity)}.standard:hover{color:var(--_hover-icon-color)}.standard:focus{color:var(--_focus-icon-color)}.standard:active{color:var(--_pressed-icon-color)}.standard:is(:disabled,[aria-disabled=true]){color:var(--_disabled-icon-color)}md-ripple{border-radius:var(--_state-layer-shape)}.standard:is(:disabled,[aria-disabled=true]){opacity:var(--_disabled-icon-opacity)}.selected{--md-ripple-hover-color: var(--_selected-hover-state-layer-color);--md-ripple-hover-opacity: var(--_selected-hover-state-layer-opacity);--md-ripple-pressed-color: var(--_selected-pressed-state-layer-color);--md-ripple-pressed-opacity: var(--_selected-pressed-state-layer-opacity)}.selected:not(:disabled,[aria-disabled=true]){color:var(--_selected-icon-color)}.selected:not(:disabled,[aria-disabled=true]):hover{color:var(--_selected-hover-icon-color)}.selected:not(:disabled,[aria-disabled=true]):focus{color:var(--_selected-focus-icon-color)}.selected:not(:disabled,[aria-disabled=true]):active{color:var(--_selected-pressed-icon-color)}
+`;
+
+/**
+ * @license
+ * Copyright 2023 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
+ * @license
+ * Copyright 2026 OMICRON electronics GmbH
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
+ * @tagname oscd-icon-button
+ * @summary Icon buttons help people take supplementary actions with a single
+ * tap.
+ *
+ * __Emphasis:__ Low emphasis – For optional or supplementary actions with the
+ * least amount of prominence.
+ *
+ * __Rationale:__ The most compact and unobtrusive type of button, icon buttons
+ * are used for optional supplementary actions such as "Bookmark" or "Star."
+ *
+ * __Example usages:__
+ * - Add to Favorites
+ * - Print
+ *
+ * @final
+ * @suppress {visibility}
+ */
+class OscdIconButton extends ScopedElementsMixin(IconButton) {
+    getRenderClasses() {
+        return {
+            ...super.getRenderClasses(),
+            standard: true,
+        };
+    }
+}
+OscdIconButton.scopedElements = {
+    'md-ripple': OscdRipple,
+    'md-focus-ring': OscdFocusRing,
+};
+OscdIconButton.styles = [styles$1, styles];
+
+const closeAnimationMs = 160;
+const iconByVariant = {
+    info: 'info',
+    success: 'check_circle',
+    warning: 'warning',
+    error: 'cancel',
+};
+const labelByVariant = {
+    info: 'Info:',
+    success: 'Success:',
+    warning: 'Warning:',
+    error: 'Error:',
+};
+let nextSnackbarId = 0;
+/**
+ * @tagname oscd-snackbar
+ * @summary Snackbar banner for transient status, warning, and error messages.
+ *
+ * @cssprop [--oscd-snackbar-z-index=9999] - Stacking order for the fixed snackbar stack.
+ * @cssprop [--oscd-snackbar-bottom=16px] - Distance from the bottom viewport edge.
+ * @cssprop [--oscd-snackbar-gap=8px] - Gap between stacked snackbars.
+ * @cssprop [--oscd-snackbar-max-width=80vw] - Maximum snackbar stack width.
+ * @cssprop [--oscd-snackbar-min-width=min(360px, 80vw)] - Minimum snackbar item width.
+ * @cssprop [--oscd-snackbar-min-height=48px] - Minimum snackbar item height.
+ * @cssprop [--oscd-snackbar-container-padding=12px 16px] - Snackbar item padding.
+ * @cssprop [--oscd-snackbar-container-elevation=3] - Snackbar container elevation level.
+ * @cssprop [--oscd-snackbar-enter-duration=160ms] - Show animation duration.
+ * @cssprop [--oscd-snackbar-exit-duration=160ms] - Hide animation duration.
+ * @cssprop [--oscd-snackbar-container-color=var(--md-sys-color-inverse-surface, #313033)] - Snackbar container color.
+ * @cssprop [--oscd-snackbar-supporting-text-color=var(--md-sys-color-inverse-on-surface, #f4eff4)] - Snackbar supporting text color.
+ * @cssprop [--oscd-snackbar-icon-color=var(--md-sys-color-inverse-on-surface, #f4eff4)] - Snackbar icon color.
+ * @cssprop [--oscd-snackbar-action-label-text-color=var(--md-sys-color-inverse-primary, #d0bcff)] - Snackbar action label color.
+ * @cssprop [--oscd-snackbar-close-icon-color=var(--md-sys-color-inverse-on-surface, #f4eff4)] - Snackbar close icon color.
+ * @cssprop [--oscd-snackbar-container-shape=var(--md-sys-shape-corner-extra-small, 4px)] - Snackbar container shape.
+ * @cssprop [--oscd-snackbar-font-family=var(--md-sys-typescale-body-large-font)] - Snackbar font family.
+ * @cssprop [--oscd-snackbar-font-size=var(--md-sys-typescale-body-large-size)] - Snackbar font size.
+ * @cssprop [--oscd-snackbar-line-height=var(--md-sys-typescale-body-large-line-height)] - Snackbar line height.
+ * @cssprop [--oscd-snackbar-message-line-clamp=3] - Maximum visible message lines before truncation.
+ *
+ * @cssprop [--oscd-snackbar-info-container-color=var(--oscd-snackbar-container-color)] - Info container color.
+ * @cssprop [--oscd-snackbar-info-supporting-text-color=var(--oscd-snackbar-supporting-text-color)] - Info supporting text color.
+ * @cssprop [--oscd-snackbar-info-icon-color=var(--oscd-snackbar-icon-color)] - Info icon color.
+ * @cssprop [--oscd-snackbar-info-action-label-text-color=var(--oscd-snackbar-action-label-text-color)] - Info action label color.
+ * @cssprop [--oscd-snackbar-info-close-icon-color=var(--oscd-snackbar-close-icon-color)] - Info close icon color.
+ * @cssprop [--oscd-snackbar-success-container-color=var(--oscd-snackbar-container-color)] - Success container color.
+ * @cssprop [--oscd-snackbar-success-supporting-text-color=var(--oscd-snackbar-supporting-text-color)] - Success supporting text color.
+ * @cssprop [--oscd-snackbar-success-icon-color=var(--oscd-snackbar-icon-color)] - Success icon color.
+ * @cssprop [--oscd-snackbar-success-action-label-text-color=var(--oscd-snackbar-action-label-text-color)] - Success action label color.
+ * @cssprop [--oscd-snackbar-success-close-icon-color=var(--oscd-snackbar-close-icon-color)] - Success close icon color.
+ * @cssprop [--oscd-snackbar-warning-container-color=var(--oscd-snackbar-container-color)] - Warning container color.
+ * @cssprop [--oscd-snackbar-warning-supporting-text-color=var(--oscd-snackbar-supporting-text-color)] - Warning supporting text color.
+ * @cssprop [--oscd-snackbar-warning-icon-color=var(--oscd-snackbar-icon-color)] - Warning icon color.
+ * @cssprop [--oscd-snackbar-warning-action-label-text-color=var(--oscd-snackbar-action-label-text-color)] - Warning action label color.
+ * @cssprop [--oscd-snackbar-warning-close-icon-color=var(--oscd-snackbar-close-icon-color)] - Warning close icon color.
+ * @cssprop [--oscd-snackbar-error-container-color=var(--md-sys-color-error-container, #f9dedc)] - Error container color.
+ * @cssprop [--oscd-snackbar-error-supporting-text-color=var(--md-sys-color-on-error-container, #410e0b)] - Error supporting text color.
+ * @cssprop [--oscd-snackbar-error-icon-color=var(--md-sys-color-error, #b3261e)] - Error icon color.
+ * @cssprop [--oscd-snackbar-error-action-label-text-color=var(--md-sys-color-on-error-container, #410e0b)] - Error action label color.
+ * @cssprop [--oscd-snackbar-error-close-icon-color=var(--md-sys-color-on-error-container, #410e0b)] - Error close icon color.
+ *
+ * @csspart snackbar - Snackbar surface.
+ * @csspart icon - Leading variant icon.
+ * @csspart message - Message text.
+ * @csspart action - Optional action button.
+ * @csspart action-icon - Icon inside the optional action button.
+ * @csspart action-label - Label inside the optional action button.
+ * @csspart close - Optional close button.
+ * @csspart elevation - Elevation shadow.
+ *
+ * @example
+ * ```ts
+ * const id = snackbar.show({
+ *   message: 'Validation failed',
+ *   variant: 'error',
+ *   variantLabel: 'Error:',
+ *   autoDismiss: false,
+ *   action: {
+ *     label: 'See More',
+ *     onClick: () => showValidationDetails(),
+ *   },
+ * });
+ *
+ * snackbar.close(id); // closes a visible or queued notification
+ * snackbar.close(); // closes visible notifications and clears queued notifications
+ * ```
+ *
+ * @final
+ * @suppress {visibility}
+ */
+class OscdSnackbar extends ScopedElementsMixin(i$2) {
+    constructor() {
+        super(...arguments);
+        this.defaultAutoDismissMs = 5000;
+        this.autoDismissMsPerWord = 500;
+        this.minAutoDismissMs = 5000;
+        this.maxAutoDismissMs = 15000;
+        this.maxVisible = 1;
+        this.mode = 'replace';
+        this.notifications = [];
+        this.queuedNotifications = [];
+    }
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        OscdSnackbar.clearTimeouts(this.notifications);
+        OscdSnackbar.clearTimeouts(this.queuedNotifications);
+    }
+    /**
+     * Shows a notification and returns an id that can be passed to `close()`.
+     * In `stack` mode, notifications beyond `maxVisible` are queued until space
+     * becomes available. Auto-dismiss timing starts when a notification becomes
+     * visible, not while it is queued. `variantLabel` overrides the visually
+     * hidden default label for localization.
+     */
+    show(options) {
+        const notification = {
+            id: `snackbar-${++nextSnackbarId}`,
+            message: options.message,
+            variant: options.variant ?? 'info',
+            variantLabel: options.variantLabel,
+            dismissible: options.dismissible ?? true,
+            action: options.action,
+            autoDismiss: options.autoDismiss,
+        };
+        const mode = options.mode ?? this.mode;
+        if (mode === 'replace') {
+            this.dismissNotifications(this.notifications);
+            OscdSnackbar.clearTimeouts(this.queuedNotifications);
+            this.queuedNotifications = [];
+            this.notifications = [
+                ...this.notifications.filter(existing => !existing.closing),
+                notification,
+            ];
+            this.scheduleAutoDismiss(notification);
+            return notification.id;
+        }
+        if (this.visibleNotifications.length < this.visibleLimit) {
+            this.notifications = [...this.notifications, notification];
+            this.scheduleAutoDismiss(notification);
+        }
+        else {
+            this.queuedNotifications = [...this.queuedNotifications, notification];
+        }
+        return notification.id;
+    }
+    /**
+     * Closes a visible or queued notification by id. Without an id, closes all
+     * visible notifications and clears all queued notifications.
+     */
+    close(id) {
+        if (id) {
+            const queuedNotificationCount = this.queuedNotifications.length;
+            this.queuedNotifications = this.queuedNotifications.filter(notification => notification.id !== id);
+            const notifications = this.notifications.filter(notification => notification.id === id);
+            if (notifications.length === 0 &&
+                this.queuedNotifications.length !== queuedNotificationCount) {
+                return;
+            }
+            if (notifications.length === 0) {
+                return;
+            }
+            this.dismissNotifications(notifications);
+            return;
+        }
+        const notifications = this.notifications;
+        OscdSnackbar.clearTimeouts(notifications);
+        OscdSnackbar.clearTimeouts(this.queuedNotifications);
+        this.queuedNotifications = [];
+        if (notifications.length === 0) {
+            return;
+        }
+        this.dismissNotifications(notifications);
+    }
+    dismissNotifications(notifications) {
+        OscdSnackbar.clearTimeouts(notifications);
+        this.notifications = this.notifications.map(notification => notifications.includes(notification)
+            ? { ...notification, closing: true }
+            : notification);
+        setTimeout(() => {
+            this.notifications = this.notifications.filter(notification => !notifications.some(closing => closing.id === notification.id));
+            this.promoteQueuedNotifications();
+        }, closeAnimationMs);
+    }
+    handleActionClick(notification) {
+        notification.action?.onClick();
+        this.close(notification.id);
+    }
+    handleCloseClick(notification) {
+        this.close(notification.id);
+    }
+    get visibleLimit() {
+        return Math.max(1, Math.floor(this.maxVisible));
+    }
+    get visibleNotifications() {
+        return this.notifications.filter(notification => !notification.closing);
+    }
+    static clearTimeouts(notifications) {
+        notifications.forEach(notification => {
+            clearTimeout(notification.timeoutId);
+        });
+    }
+    promoteQueuedNotifications() {
+        const availableSlots = this.visibleLimit - this.visibleNotifications.length;
+        if (availableSlots <= 0 || this.queuedNotifications.length === 0) {
+            return;
+        }
+        const promotedNotifications = this.queuedNotifications.slice(0, availableSlots);
+        this.queuedNotifications = this.queuedNotifications.slice(availableSlots);
+        this.notifications = [...this.notifications, ...promotedNotifications];
+        promotedNotifications.forEach(notification => {
+            this.scheduleAutoDismiss(notification);
+        });
+    }
+    scheduleAutoDismiss(notification) {
+        const timeoutMs = this.resolveAutoDismissMs(notification, notification.autoDismiss);
+        if (timeoutMs === undefined) {
+            return;
+        }
+        notification.timeoutId = setTimeout(() => {
+            this.close(notification.id);
+        }, timeoutMs);
+    }
+    resolveAutoDismissMs(notification, autoDismiss) {
+        if (autoDismiss === false) {
+            return undefined;
+        }
+        if (typeof autoDismiss === 'number') {
+            return autoDismiss > 0 ? autoDismiss : undefined;
+        }
+        if (autoDismiss === true) {
+            return this.calculateAutoDismissMs(notification.message);
+        }
+        if (notification.variant === 'error' || notification.action) {
+            return undefined;
+        }
+        return this.calculateAutoDismissMs(notification.message);
+    }
+    calculateAutoDismissMs(message) {
+        if (this.defaultAutoDismissMs <= 0) {
+            return undefined;
+        }
+        const wordCount = message.trim().split(/\s+/).filter(Boolean).length;
+        const timeoutMs = this.defaultAutoDismissMs + wordCount * this.autoDismissMsPerWord;
+        return Math.min(this.maxAutoDismissMs, Math.max(this.minAutoDismissMs, timeoutMs));
+    }
+    renderAction(notification) {
+        if (!notification.action) {
+            return A;
+        }
+        return b `<button
+      class="action"
+      part="action"
+      type="button"
+      @click=${() => this.handleActionClick(notification)}
+    >
+      <oscd-icon part="action-icon">arrow_forward</oscd-icon>
+      <span part="action-label">${notification.action.label}</span>
+    </button>`;
+    }
+    renderCloseButton(notification) {
+        if (!notification.dismissible) {
+            return A;
+        }
+        return b `<oscd-icon-button
+      class="close"
+      part="close"
+      aria-label="Close"
+      @click=${() => this.handleCloseClick(notification)}
+    >
+      <oscd-icon>close</oscd-icon>
+    </oscd-icon-button>`;
+    }
+    renderNotification(notification) {
+        return b `<div
+      class=${e({
+            snackbar: true,
+            [notification.variant]: true,
+            closing: !!notification.closing,
+        })}
+      part="snackbar"
+      role=${notification.variant === 'error' ? 'alert' : 'status'}
+    >
+      <oscd-icon class="variant-icon" part="icon" aria-hidden="true"
+        >${iconByVariant[notification.variant]}</oscd-icon
+      >
+      <span class="visually-hidden"
+        >${notification.variantLabel ?? labelByVariant[notification.variant]}
+      </span>
+      <span class="message" part="message">${notification.message}</span>
+      ${this.renderAction(notification)} ${this.renderCloseButton(notification)}
+      <oscd-elevation part="elevation"></oscd-elevation>
+    </div>`;
+    }
+    render() {
+        return b `${[...this.notifications]
+            .reverse()
+            .map(notification => this.renderNotification(notification))}`;
+    }
+}
+OscdSnackbar.scopedElements = {
+    'oscd-elevation': OscdElevation,
+    'oscd-icon': OscdIcon,
+    'oscd-icon-button': OscdIconButton,
+};
+OscdSnackbar.styles = i$5 `
+    :host {
+      box-sizing: border-box;
+      display: flex;
+      position: fixed;
+      bottom: var(--oscd-snackbar-bottom, 16px);
+      left: 50%;
+      flex-direction: column-reverse;
+      align-items: center;
+      gap: var(--oscd-snackbar-gap, 8px);
+      width: max-content;
+      max-width: var(--oscd-snackbar-max-width, 80vw);
+      transform: translateX(-50%);
+      z-index: var(--oscd-snackbar-z-index, 9999);
+      pointer-events: none;
+    }
+
+    .snackbar {
+      box-sizing: border-box;
+      display: grid;
+      position: relative;
+      flex: 0 0 auto;
+      grid-template-columns: auto minmax(0, 1fr) auto auto;
+      align-items: center;
+      width: max-content;
+      min-width: var(--oscd-snackbar-min-width, min(360px, 80vw));
+      max-width: 100%;
+      min-height: var(--oscd-snackbar-min-height, 48px);
+      padding: var(--oscd-snackbar-container-padding, 12px 16px);
+      --_container-color: var(
+        --oscd-snackbar-container-color,
+        var(--md-sys-color-inverse-surface, #313033)
+      );
+      --_supporting-text-color: var(
+        --oscd-snackbar-supporting-text-color,
+        var(--md-sys-color-inverse-on-surface, #f4eff4)
+      );
+      --_icon-color: var(
+        --oscd-snackbar-icon-color,
+        var(--md-sys-color-inverse-on-surface, #f4eff4)
+      );
+      --_action-label-text-color: var(
+        --oscd-snackbar-action-label-text-color,
+        var(--md-sys-color-inverse-primary, #d0bcff)
+      );
+      --_close-icon-color: var(
+        --oscd-snackbar-close-icon-color,
+        var(--md-sys-color-inverse-on-surface, #f4eff4)
+      );
+      --md-elevation-level: var(--oscd-snackbar-container-elevation, 3);
+      --md-icon-button-icon-color: var(--_close-icon-color);
+      color: var(--_supporting-text-color);
+      background: var(--_container-color);
+      border-radius: var(
+        --oscd-snackbar-container-shape,
+        var(--md-sys-shape-corner-extra-small, 4px)
+      );
+      font-family: var(
+        --oscd-snackbar-font-family,
+        var(--md-sys-typescale-body-large-font)
+      );
+      font-size: var(
+        --oscd-snackbar-font-size,
+        var(--md-sys-typescale-body-large-size)
+      );
+      line-height: var(
+        --oscd-snackbar-line-height,
+        var(--md-sys-typescale-body-large-line-height)
+      );
+      pointer-events: auto;
+      animation: snackbar-slide-in var(--oscd-snackbar-enter-duration, 160ms)
+        ease-out;
+    }
+
+    .snackbar.closing {
+      pointer-events: none;
+      animation: snackbar-fade-out var(--oscd-snackbar-exit-duration, 160ms)
+        ease-in forwards;
+    }
+
+    .snackbar.info {
+      --_container-color: var(
+        --oscd-snackbar-info-container-color,
+        var(
+          --oscd-snackbar-container-color,
+          var(--md-sys-color-inverse-surface, #313033)
+        )
+      );
+      --_supporting-text-color: var(
+        --oscd-snackbar-info-supporting-text-color,
+        var(
+          --oscd-snackbar-supporting-text-color,
+          var(--md-sys-color-inverse-on-surface, #f4eff4)
+        )
+      );
+      --_icon-color: var(
+        --oscd-snackbar-info-icon-color,
+        var(
+          --oscd-snackbar-icon-color,
+          var(--md-sys-color-inverse-on-surface, #f4eff4)
+        )
+      );
+      --_action-label-text-color: var(
+        --oscd-snackbar-info-action-label-text-color,
+        var(
+          --oscd-snackbar-action-label-text-color,
+          var(--md-sys-color-inverse-primary, #d0bcff)
+        )
+      );
+      --_close-icon-color: var(
+        --oscd-snackbar-info-close-icon-color,
+        var(
+          --oscd-snackbar-close-icon-color,
+          var(--md-sys-color-inverse-on-surface, #f4eff4)
+        )
+      );
+    }
+
+    .snackbar.success {
+      --_container-color: var(
+        --oscd-snackbar-success-container-color,
+        var(
+          --oscd-snackbar-container-color,
+          var(--md-sys-color-inverse-surface, #313033)
+        )
+      );
+      --_supporting-text-color: var(
+        --oscd-snackbar-success-supporting-text-color,
+        var(
+          --oscd-snackbar-supporting-text-color,
+          var(--md-sys-color-inverse-on-surface, #f4eff4)
+        )
+      );
+      --_icon-color: var(
+        --oscd-snackbar-success-icon-color,
+        var(
+          --oscd-snackbar-icon-color,
+          var(--md-sys-color-inverse-on-surface, #f4eff4)
+        )
+      );
+      --_action-label-text-color: var(
+        --oscd-snackbar-success-action-label-text-color,
+        var(
+          --oscd-snackbar-action-label-text-color,
+          var(--md-sys-color-inverse-primary, #d0bcff)
+        )
+      );
+      --_close-icon-color: var(
+        --oscd-snackbar-success-close-icon-color,
+        var(
+          --oscd-snackbar-close-icon-color,
+          var(--md-sys-color-inverse-on-surface, #f4eff4)
+        )
+      );
+    }
+
+    .snackbar.warning {
+      --_container-color: var(
+        --oscd-snackbar-warning-container-color,
+        var(
+          --oscd-snackbar-container-color,
+          var(--md-sys-color-inverse-surface, #313033)
+        )
+      );
+      --_supporting-text-color: var(
+        --oscd-snackbar-warning-supporting-text-color,
+        var(
+          --oscd-snackbar-supporting-text-color,
+          var(--md-sys-color-inverse-on-surface, #f4eff4)
+        )
+      );
+      --_icon-color: var(
+        --oscd-snackbar-warning-icon-color,
+        var(
+          --oscd-snackbar-icon-color,
+          var(--md-sys-color-inverse-on-surface, #f4eff4)
+        )
+      );
+      --_action-label-text-color: var(
+        --oscd-snackbar-warning-action-label-text-color,
+        var(
+          --oscd-snackbar-action-label-text-color,
+          var(--md-sys-color-inverse-primary, #d0bcff)
+        )
+      );
+      --_close-icon-color: var(
+        --oscd-snackbar-warning-close-icon-color,
+        var(
+          --oscd-snackbar-close-icon-color,
+          var(--md-sys-color-inverse-on-surface, #f4eff4)
+        )
+      );
+    }
+
+    .snackbar.error {
+      --_container-color: var(
+        --oscd-snackbar-error-container-color,
+        var(--md-sys-color-error-container, #f9dedc)
+      );
+      --_supporting-text-color: var(
+        --oscd-snackbar-error-supporting-text-color,
+        var(--md-sys-color-on-error-container, #410e0b)
+      );
+      --_icon-color: var(
+        --oscd-snackbar-error-icon-color,
+        var(--md-sys-color-error, #b3261e)
+      );
+      --_action-label-text-color: var(
+        --oscd-snackbar-error-action-label-text-color,
+        var(--md-sys-color-on-error-container, #410e0b)
+      );
+      --_close-icon-color: var(
+        --oscd-snackbar-error-close-icon-color,
+        var(--md-sys-color-on-error-container, #410e0b)
+      );
+    }
+
+    .variant-icon {
+      width: 24px;
+      height: 24px;
+      margin-inline-end: 16px;
+      font-size: 24px;
+      color: var(--_icon-color);
+    }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      clip-path: inset(50%);
+    }
+
+    .message {
+      display: -webkit-box;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      overflow-wrap: anywhere;
+      white-space: normal;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: var(--oscd-snackbar-message-line-clamp, 3);
+    }
+
+    .action {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-width: max-content;
+      margin-inline-start: 16px;
+      padding: 0;
+      border: 0;
+      background: none;
+      color: var(--_action-label-text-color);
+      cursor: pointer;
+      font: inherit;
+      font-size: var(--md-sys-typescale-label-large-size);
+      font-weight: var(--md-sys-typescale-label-large-weight);
+      line-height: var(--md-sys-typescale-label-large-line-height);
+    }
+
+    .action oscd-icon {
+      width: 18px;
+      height: 18px;
+      font-size: 18px;
+    }
+
+    .close {
+      margin-inline-start: 16px;
+      color: inherit;
+    }
+
+    @keyframes snackbar-slide-in {
+      from {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes snackbar-fade-out {
+      from {
+        opacity: 1;
+      }
+
+      to {
+        opacity: 0;
+      }
+    }
+  `;
+__decorate([
+    n$1({ type: Number, attribute: 'default-auto-dismiss-ms' })
+], OscdSnackbar.prototype, "defaultAutoDismissMs", void 0);
+__decorate([
+    n$1({ type: Number, attribute: 'auto-dismiss-ms-per-word' })
+], OscdSnackbar.prototype, "autoDismissMsPerWord", void 0);
+__decorate([
+    n$1({ type: Number, attribute: 'min-auto-dismiss-ms' })
+], OscdSnackbar.prototype, "minAutoDismissMs", void 0);
+__decorate([
+    n$1({ type: Number, attribute: 'max-auto-dismiss-ms' })
+], OscdSnackbar.prototype, "maxAutoDismissMs", void 0);
+__decorate([
+    n$1({ type: Number, attribute: 'max-visible' })
+], OscdSnackbar.prototype, "maxVisible", void 0);
+__decorate([
+    n$1({ type: String })
+], OscdSnackbar.prototype, "mode", void 0);
+__decorate([
+    r()
+], OscdSnackbar.prototype, "notifications", void 0);
 
 function newEditEventV2(edit, options) {
     return new CustomEvent('oscd-edit-v2', {
@@ -27423,7 +29292,9 @@ const layoutKeys = [
     'x', 'y', 'w', 'h', 'rot', 'lx', 'ly', 'kind', 'flip', 'color', 'weight', 'uuid',
 ];
 const plantTags = new Set([
-    'Substation', 'VoltageLevel', 'Bay', 'ConductingEquipment',
+    // Text/Private matches the editor for now, but violates SCL's Text content model.
+    // See https://github.com/openscd/oscd-extensions/issues/5.
+    'Text', 'Substation', 'VoltageLevel', 'Bay', 'ConductingEquipment',
     'PowerTransformer', 'TransformerWinding', 'ConnectivityNode',
     'Terminal', 'NeutralPoint', 'Function', 'SubFunction', 'EqFunction', 'EqSubFunction',
 ]);
@@ -27466,37 +29337,48 @@ function privateReference(container) {
     return reference instanceof Element
         ? children[Array.from(view.children).indexOf(reference)] : null;
 }
+function unusedPrefix(elements, base) {
+    const prefixes = new Set(elements.flatMap(element => Array.from(element.attributes)
+        .filter(attribute => attribute.namespaceURI === xmlnsNs)
+        .map(attribute => attribute.localName)));
+    let prefix = base;
+    let suffix = 1;
+    while (prefixes.has(prefix)) {
+        prefix = `${base}${suffix++}`;
+    }
+    return prefix;
+}
+function rootIedIdentity(doc, name) {
+    // identity() dispatches on tagName; normalize without modifying the source.
+    const view = createElement(doc, 'IED', { name });
+    createElement(doc, 'SCL', {}).appendChild(view);
+    return String(identity(view));
+}
 /** Copies into detached layout sections, so planning cannot change the live document. */
 function copySldV1Plan(doc, overwrite = false) {
     const issues = [];
     let conflicts = 0;
     let copied = 0;
+    let unchanged = 0;
+    let hasTextChanges = false;
     const sclNs = doc.documentElement.namespaceURI;
     const elements = allElements(doc);
     const substations = elements.filter(element => element.namespaceURI === sclNs &&
         element.localName === 'Substation' && element.parentElement === doc.documentElement);
     const ieds = new Map();
-    const prefixes = new Set();
     for (const element of elements) {
-        for (const attribute of Array.from(element.attributes)) {
-            if (attribute.namespaceURI === xmlnsNs) {
-                prefixes.add(attribute.localName);
-            }
-        }
         if (element.namespaceURI === sclNs && element.localName === 'IED' &&
             element.parentElement === doc.documentElement) {
             const name = element.getAttribute('name') ?? '';
             ieds.set(name, [...(ieds.get(name) ?? []), element]);
         }
     }
-    let prefix = 'eosld';
-    let suffix = 1;
-    while (prefixes.has(prefix)) {
-        prefix = `eosld${suffix++}`;
-    }
+    const prefix = unusedPrefix(elements, 'eosld');
     const destinations = new Map();
     const handled = new Set();
     const linkedNames = new Set();
+    const linkedCoordinateNames = new Set();
+    let retainedCoords = 0;
     const copiedReferences = new Map();
     const copiedSections = new Set();
     function extension(localName) {
@@ -27538,7 +29420,12 @@ function copySldV1Plan(doc, overwrite = false) {
             issues.push('Multiple SLDAttributes destinations; resolve duplicates before copying.');
             return;
         }
-        if (existing.length > 0) {
+        if (existing.length > 0 && values.every(attribute => existing[0].getAttributeNS(sldNs, attribute.localName) === attribute.value)) {
+            unchanged += 1;
+            return;
+        }
+        hasTextChanges ||= source.namespaceURI === sclNs && source.localName === 'Text';
+        if (existing.some(record => Array.from(record.attributes).some(attribute => attribute.namespaceURI === sldNs && layoutKeys.includes(attribute.localName)))) {
             conflicts += 1;
             if (!overwrite) {
                 return;
@@ -27567,10 +29454,7 @@ function copySldV1Plan(doc, overwrite = false) {
             issues.push(`Cannot uniquely resolve legacy IED "${name}".`);
             return;
         }
-        // identity() dispatches on tagName, so use a prefix-free view of the root IED.
-        const iedView = createElement(doc, 'IED', { name });
-        createElement(doc, 'SCL', {}).appendChild(iedView);
-        const id = String(identity(iedView));
+        const id = rootIedIdentity(doc, name);
         const seen = copiedReferences.get(container) ?? new Set();
         if (seen.has(id)) {
             issues.push(`Multiple legacy placements for IED "${name}" in the same container.`);
@@ -27616,12 +29500,41 @@ function copySldV1Plan(doc, overwrite = false) {
                 element.parentElement.namespaceURI === sclNs &&
                 ['Substation', 'VoltageLevel', 'Bay'].includes(element.parentElement.localName)) {
                 linkedNames.add(name);
+                if (Array.from(child.attributes).some(attribute => attribute.namespaceURI === sldV1Ns && layoutKeys.includes(attribute.localName))) {
+                    linkedCoordinateNames.add(name);
+                }
                 copyIed(child, element.parentElement, name);
             }
             else {
                 issues.push('Unsupported entry or container in OpenSCD-Linked-IEDs.');
             }
         }
+    }
+    for (const source of elements.filter(element => element.namespaceURI === sclNs && element.localName === 'Private' &&
+        element.getAttribute('type') === 'OpenSCD-Coords')) {
+        const records = Array.from(source.children).filter(child => child.namespaceURI === sldV1Ns && child.localName === 'Coords');
+        if (records.length === 0) {
+            continue;
+        }
+        handled.add(source);
+        validateAttributes(source, []);
+        for (const record of records) {
+            handled.add(record);
+            validateAttributes(record, layoutKeys);
+        }
+        const owner = source.parentElement;
+        if (records.length !== 1 || records[0].children.length > 0 ||
+            owner?.namespaceURI !== sclNs || owner.localName !== 'IED' ||
+            owner.parentElement !== doc.documentElement) {
+            issues.push('Ambiguous or unsupported OpenSCD-Coords container.');
+            continue;
+        }
+        const name = owner.getAttribute('name') ?? '';
+        if (!linkedCoordinateNames.has(name)) {
+            issues.push(`Legacy Coords for IED "${name}" has no scoped linked placement; its destination must be resolved before copying.`);
+            continue;
+        }
+        retainedCoords += 1;
     }
     for (const source of elements.filter(element => privateSystem(element) === 'sldv1' &&
         element.getAttribute('type') === 'Transpower-SLD-Vertices')) {
@@ -27634,6 +29547,9 @@ function copySldV1Plan(doc, overwrite = false) {
             continue;
         }
         copiedSections.add(container);
+        if (source.children.length === 0) {
+            continue;
+        }
         const target = destination(container);
         if (target === undefined) {
             continue;
@@ -27644,6 +29560,11 @@ function copySldV1Plan(doc, overwrite = false) {
             if (section.namespaceURI !== sldV1Ns || section.localName !== 'Section') {
                 issues.push('Unsupported content in Transpower-SLD-Vertices.');
                 continue;
+            }
+            validateAttributes(section, ['bus']);
+            if (section.hasAttribute('bus') && section.hasAttributeNS(sldV1Ns, 'bus') &&
+                section.getAttribute('bus') !== section.getAttributeNS(sldV1Ns, 'bus')) {
+                issues.push('Conflicting legacy connectivity bus flags.');
             }
             const node = extension('Section');
             for (const attribute of Array.from(section.attributes)) {
@@ -27665,6 +29586,7 @@ function copySldV1Plan(doc, overwrite = false) {
                     issues.push('Unsupported connectivity vertex.');
                     continue;
                 }
+                validateAttributes(vertex, ['x', 'y', 'uuid']);
                 const copy = extension('Vertex');
                 for (const attribute of Array.from(vertex.attributes)) {
                     if (attribute.namespaceURI === sldV1Ns) {
@@ -27679,6 +29601,11 @@ function copySldV1Plan(doc, overwrite = false) {
             converted.push(node);
         }
         const existing = Array.from(target.node.children).filter(child => child.namespaceURI === sldNs && child.localName === 'Section');
+        if (converted.length > 0 && existing.length === converted.length &&
+            existing.every((section, index) => sameLayout(section, converted[index]))) {
+            unchanged += 1;
+            continue;
+        }
         if (existing.length > 0) {
             conflicts += 1;
             if (!overwrite) {
@@ -27686,11 +29613,7 @@ function copySldV1Plan(doc, overwrite = false) {
             }
         }
         if (converted.length > 0) {
-            copied += converted.length;
-            if (existing.length === converted.length &&
-                existing.every((section, index) => sameLayout(section, converted[index]))) {
-                continue;
-            }
+            copied += 1;
             if (existing.some(section => [section, ...Array.from(section.getElementsByTagName('*'))]
                 .some(child => child.namespaceURI !== sldNs ||
                 Array.from(child.attributes).some(attribute => attribute.namespaceURI !== sldNs &&
@@ -27758,116 +29681,520 @@ function copySldV1Plan(doc, overwrite = false) {
             attributesNS: { [xmlnsNs]: { [`xmlns:${prefix}`]: sldNs } },
         });
     }
-    return { edits: issues.length === 0 ? edits : [], conflicts, copied, issues };
+    const notes = retainedCoords > 0
+        ? [`Scoped linked IED placements take precedence over ${retainedCoords} legacy Coords record(s), which are retained unchanged.`]
+        : [];
+    if (hasTextChanges) {
+        notes.push('Copying Text layout to SLD Private uses a Private child inside Text for editor compatibility. This representation violates the SCL schema.');
+    }
+    return { edits: issues.length === 0 ? edits : [], conflicts, copied, unchanged, issues, notes };
+}
+/** Exports existing geometry without repositioning elements or removing source data. */
+function copySldPrivatePlan(doc, overwrite = false) {
+    const elements = allElements(doc);
+    const sclNs = doc.documentElement.namespaceURI;
+    const prefix = unusedPrefix(elements, 'esld');
+    const issues = [];
+    const edits = [];
+    let conflicts = 0;
+    let copied = 0;
+    let unchanged = 0;
+    const handled = new Set();
+    const ieds = new Map();
+    const substations = elements.filter(element => element.namespaceURI === sclNs &&
+        element.localName === 'Substation' && element.parentElement === doc.documentElement);
+    const sourcePlacements = new Map();
+    const linkedNames = new Set();
+    const destinations = new Map();
+    for (const element of elements) {
+        if (element.namespaceURI === sclNs && element.localName === 'IED' &&
+            element.parentElement === doc.documentElement) {
+            const name = element.getAttribute('name') ?? '';
+            const id = rootIedIdentity(doc, name);
+            ieds.set(id, [...(ieds.get(id) ?? []), element]);
+        }
+        if (element.namespaceURI === sldNs && element.localName === 'Reference') {
+            const id = element.getAttributeNS(sldNs, 'id') ?? '';
+            sourcePlacements.set(id, (sourcePlacements.get(id) ?? 0) + 1);
+        }
+        if (element.localName === 'IEDName' &&
+            (element.namespaceURI === sclNs || element.namespaceURI === sldV1Ns) &&
+            element.parentElement?.getAttribute('type') === 'OpenSCD-Linked-IEDs' &&
+            privateSystem(element.parentElement) === 'sldv1') {
+            linkedNames.add(element.getAttributeNS(sldV1Ns, 'name') ?? '');
+        }
+    }
+    function sourceAttributes(element, allowed) {
+        handled.add(element);
+        const attributes = Array.from(element.attributes).filter(attribute => attribute.namespaceURI === sldNs);
+        const unknown = attributes.filter(attribute => !allowed.includes(attribute.localName));
+        if (unknown.length > 0) {
+            issues.push(`Unsupported SLD Private attributes on ${element.localName}: ${unknown.map(attribute => attribute.localName).join(', ')}.`);
+        }
+        return attributes.filter(attribute => allowed.includes(attribute.localName));
+    }
+    function destination(container, type) {
+        const cache = destinations.get(container) ?? new Map();
+        destinations.set(container, cache);
+        const cached = cache.get(type);
+        if (cached !== undefined) {
+            return cached;
+        }
+        const matches = Array.from(container.children).filter(child => child.namespaceURI === sclNs && child.localName === 'Private' &&
+            child.getAttribute('type') === type);
+        if (matches.length > 1) {
+            issues.push(`Multiple ${type} destinations on ${container.localName}.`);
+            return undefined;
+        }
+        const original = matches[0];
+        const clone = original?.cloneNode(true);
+        const node = clone instanceof Element ? clone : createElement(doc, 'Private', { type });
+        const result = { original, node, changed: false, references: new Map() };
+        cache.set(type, result);
+        return result;
+    }
+    function writeAttributes(target, values, detached) {
+        if (values.length === 0) {
+            return;
+        }
+        const changed = values.filter(attribute => target.getAttributeNS(sldV1Ns, attribute.localName) !== attribute.value);
+        if (changed.length === 0) {
+            unchanged += 1;
+            return;
+        }
+        const exists = Array.from(target.attributes).some(attribute => attribute.namespaceURI === sldV1Ns && layoutKeys.includes(attribute.localName));
+        if (exists) {
+            conflicts += 1;
+            if (!overwrite) {
+                return;
+            }
+        }
+        copied += 1;
+        if (detached !== undefined) {
+            changed.forEach(attribute => target.setAttributeNS(sldV1Ns, `${prefix}:${attribute.localName}`, attribute.value));
+            detached.changed = true;
+        }
+        else {
+            edits.push({
+                element: target,
+                attributes: {},
+                attributesNS: {
+                    [sldV1Ns]: Object.fromEntries(changed.map(attribute => [`${prefix}:${attribute.localName}`, attribute.value])),
+                },
+            });
+        }
+    }
+    function layoutValues(parent) {
+        const records = Array.from(parent.children).filter(child => child.namespaceURI === sldNs && child.localName === 'SLDAttributes');
+        if (records.length > 1) {
+            issues.push(`Multiple SLDAttributes sources on ${parent.localName}.`);
+        }
+        const values = records.flatMap((record) => {
+            if (record.children.length > 0) {
+                issues.push('Unsupported children in SLDAttributes.');
+            }
+            return sourceAttributes(record, layoutKeys);
+        });
+        return values;
+    }
+    function copyIed(reference, container, seen) {
+        sourceAttributes(reference, ['id', 'type']);
+        const id = reference.getAttributeNS(sldNs, 'id') ?? '';
+        const matches = ieds.get(id) ?? [];
+        if (reference.getAttributeNS(sldNs, 'type') !== 'IED' || matches.length !== 1 ||
+            id === '' || !['Substation', 'VoltageLevel', 'Bay'].includes(container.localName)) {
+            issues.push(`Cannot uniquely export SLD Private reference "${id}" from ${container.localName}.`);
+            return;
+        }
+        if (seen.has(id)) {
+            issues.push(`Duplicate source references for IED "${id}" in the same container.`);
+            return;
+        }
+        seen.add(id);
+        if (Array.from(reference.children).some(child => child.namespaceURI !== sldNs || child.localName !== 'SLDAttributes')) {
+            issues.push(`Unsupported children in IED reference "${id}".`);
+        }
+        const values = layoutValues(reference);
+        if (values.length === 0) {
+            return;
+        }
+        const ied = matches[0];
+        const name = ied.getAttribute('name') ?? '';
+        const direct = Array.from(ied.attributes).some(attribute => attribute.namespaceURI === sldV1Ns && layoutKeys.includes(attribute.localName));
+        if (direct) {
+            if (linkedNames.has(name) || substations.length !== 1 ||
+                container !== substations[0] || sourcePlacements.get(id) !== 1) {
+                issues.push(`Competing or ambiguous direct legacy placement for IED "${name}".`);
+                return;
+            }
+            writeAttributes(ied, values);
+            return;
+        }
+        const target = destination(container, 'OpenSCD-Linked-IEDs');
+        if (target === undefined) {
+            return;
+        }
+        const entries = Array.from(target.node.children).filter(child => child.localName === 'IEDName' &&
+            (child.namespaceURI === sclNs || child.namespaceURI === sldV1Ns) &&
+            child.getAttributeNS(sldV1Ns, 'name') === name);
+        if (entries.length > 1) {
+            issues.push(`Duplicate legacy destination entries for IED "${name}".`);
+            return;
+        }
+        const entry = entries[0] ?? doc.createElementNS(sldV1Ns, `${prefix}:IEDName`);
+        if (entries.length === 0) {
+            entry.setAttributeNS(sldV1Ns, `${prefix}:name`, name);
+            target.node.appendChild(entry);
+        }
+        writeAttributes(entry, values, target);
+    }
+    function copySections(sections, container) {
+        if (sections.length === 0) {
+            return;
+        }
+        if (container.localName !== 'ConnectivityNode') {
+            issues.push('SLD Private connectivity sections must belong to a ConnectivityNode.');
+            return;
+        }
+        const converted = sections.map((section) => {
+            const node = doc.createElementNS(sldV1Ns, `${prefix}:Section`);
+            sourceAttributes(section, ['bus']).forEach(attribute => node.setAttribute('bus', attribute.value));
+            for (const vertex of Array.from(section.children)) {
+                if (vertex.namespaceURI !== sldNs || vertex.localName !== 'Vertex' ||
+                    vertex.children.length > 0) {
+                    issues.push('Unsupported SLD Private connectivity vertex.');
+                    continue;
+                }
+                const copy = doc.createElementNS(sldV1Ns, `${prefix}:Vertex`);
+                sourceAttributes(vertex, ['x', 'y', 'uuid']).forEach(attribute => copy.setAttributeNS(sldV1Ns, `${prefix}:${attribute.localName}`, attribute.value));
+                node.appendChild(copy);
+            }
+            return node;
+        });
+        const target = destination(container, 'Transpower-SLD-Vertices');
+        if (target === undefined) {
+            return;
+        }
+        const existing = Array.from(target.node.children).filter(child => child.namespaceURI === sldV1Ns && child.localName === 'Section');
+        if (existing.length === converted.length &&
+            existing.every((section, index) => sameLayout(section, converted[index]))) {
+            unchanged += 1;
+            return;
+        }
+        if (existing.length > 0) {
+            conflicts += 1;
+            if (!overwrite) {
+                return;
+            }
+        }
+        copied += 1;
+        if (existing.some(section => [section, ...Array.from(section.getElementsByTagName('*'))]
+            .some(child => child.namespaceURI !== sldV1Ns ||
+            Array.from(child.attributes).some(attribute => attribute.namespaceURI !== sldV1Ns &&
+                attribute.namespaceURI !== xmlnsNs &&
+                !(child === section && attribute.namespaceURI === null && attribute.localName === 'bus'))))) {
+            issues.push('Legacy connectivity sections contain unrelated content; overwrite was blocked.');
+            return;
+        }
+        existing.forEach(section => section.remove());
+        target.node.append(...converted);
+        target.changed = true;
+    }
+    const containers = new Set();
+    for (const source of elements.filter(element => privateSystem(element) === 'sldpriv')) {
+        sourceAttributes(source, []);
+        const container = source.parentElement;
+        if (container === null || container.namespaceURI !== sclNs ||
+            !plantTags.has(container.localName) || containers.has(container)) {
+            issues.push('Duplicate or unsupported SLD Private source container.');
+            continue;
+        }
+        containers.add(container);
+        writeAttributes(container, layoutValues(source));
+        const seen = new Set();
+        for (const child of Array.from(source.children)) {
+            if (child.namespaceURI === sldNs && child.localName === 'Reference') {
+                copyIed(child, container, seen);
+            }
+        }
+        copySections(Array.from(source.children).filter(child => child.namespaceURI === sldNs && child.localName === 'Section'), container);
+    }
+    for (const element of elements) {
+        if (!handled.has(element) && (element.namespaceURI === sldNs ||
+            Array.from(element.attributes).some(attribute => attribute.namespaceURI === sldNs))) {
+            issues.push(`Unsupported SLD Private content on ${element.localName}.`);
+        }
+    }
+    for (const [container, targets] of destinations) {
+        for (const target of targets.values()) {
+            if (target.changed) {
+                const reference = target.original !== undefined
+                    ? target.original.nextSibling : privateReference(container);
+                if (target.original !== undefined) {
+                    edits.push({ node: target.original });
+                }
+                edits.push({ parent: container, node: target.node, reference });
+            }
+        }
+    }
+    if (edits.length > 0) {
+        edits.unshift({
+            element: doc.documentElement,
+            attributes: {},
+            attributesNS: { [xmlnsNs]: { [`xmlns:${prefix}`]: sldV1Ns } },
+        });
+    }
+    return { edits: issues.length === 0 ? edits : [], issues, conflicts, copied, unchanged, notes: [] };
 }
 
-class OscdMenuCopySldv1Sldpriv extends ScopedElementsMixin(i$1) {
+class OscdCoordinateCopyDialog extends ScopedElementsMixin(i$2) {
     constructor() {
         super(...arguments);
         this.docVersion = 0;
-        this.overwrite = false;
-        this.result = '';
+        this.direction = 'to-private';
+        this.showIntroduction = true;
+        this.hideIntroduction = false;
+        this.preferenceError = '';
+        this.copying = false;
     }
     async run() {
-        this.overwrite = false;
-        this.result = '';
-        this.snapshot = this.doc === undefined ? undefined : { doc: this.doc, version: this.docVersion };
-        this.plan = this.doc === undefined ? undefined : copySldV1Plan(this.doc);
-        await this.updateComplete;
-        await this.dialog?.show();
-    }
-    handleOverwrite(event) {
-        if (event.target instanceof OscdCheckbox) {
-            this.overwrite = event.target.checked;
-        }
-    }
-    handleCopy() {
-        if (this.doc === undefined || this.isStale() || this.result !== '' ||
-            this.plan === undefined || this.plan.issues.length > 0) {
+        if (this.copying) {
             return;
         }
-        const plan = copySldV1Plan(this.doc, this.overwrite);
+        this.hideIntroduction = false;
+        this.preferenceError = '';
+        this.showIntroduction = this.introductionDismissed !== true;
+        this.snapshot = this.doc === undefined ? undefined : { doc: this.doc, version: this.docVersion };
+        this.plan = this.doc === undefined ? undefined : this.createPlan(this.doc);
+        await this.updateComplete;
+        this.snackbar?.close();
+        if (this.doc === undefined || this.plan === undefined || this.plan.issues.length > 0 ||
+            this.plan.conflicts > 0 || this.plan.notes.length > 0 || this.showIntroduction ||
+            this.noChanges || this.isStale()) {
+            await this.dialog?.show();
+        }
+        else {
+            await this.handleCopy();
+        }
+    }
+    handleIntroductionChange(event) {
+        if (event.target instanceof OscdCheckbox) {
+            this.hideIntroduction = event.target.checked;
+        }
+    }
+    async handleCopy(overwrite = false) {
+        if (!this.canCopy || this.copying || this.plan === undefined || this.doc === undefined) {
+            return;
+        }
+        const plan = overwrite ? this.createPlan(this.doc, true) : this.plan;
         this.plan = plan;
         if (plan.issues.length > 0) {
             return;
         }
-        if (plan.edits.length === 0) {
-            this.result = msg('No changes needed. Existing destinations were left untouched.');
+        this.copying = true;
+        this.saveIntroductionPreference();
+        if (plan.edits.length === 0 && this.preferenceError !== '') {
+            this.copying = false;
             return;
         }
-        this.dispatchEvent(newEditEventV2(plan.edits, { title: msg('Copy SLDv1 to SLD Private') }));
-        this.result = msg('Copy completed. All original SLDv1 data was retained.');
+        if (plan.edits.length > 0) {
+            this.dispatchEvent(newEditEventV2(plan.edits, { title: this.copyTitle }));
+        }
+        await this.dialog?.close();
+        if (plan.edits.length > 0) {
+            const skipped = overwrite ? 0 : plan.conflicts;
+            const result = msg(str `Copied ${plan.copied} layout records; skipped ${skipped} differing destinations.`);
+            this.snackbar?.show({
+                message: `${this.copyTitle}: ${result}${this.preferenceError === '' ? '' : ` ${this.preferenceError}`}`,
+                variant: this.preferenceError !== '' ? 'warning' : 'success',
+                variantLabel: this.preferenceError !== '' ? msg('Warning:') : msg('Success:'),
+                autoDismiss: this.preferenceError === '' ? true : false,
+            });
+        }
+        this.copying = false;
+    }
+    saveIntroductionPreference() {
+        if (!this.canCopy || !this.showIntroduction || !this.hideIntroduction) {
+            return;
+        }
+        this.introductionDismissed = true;
+        let saved = false;
+        try {
+            saved = localStorage.getItem(`oscd-coordinate-copy:${this.id}:introductionDismissed`) === 'true';
+        }
+        catch (error) {
+            if (!(error instanceof DOMException)) {
+                throw error;
+            }
+        }
+        if (!saved) {
+            this.introductionDismissed = false;
+            this.preferenceError = msg('The browser could not save your preference. The introduction will be shown again.');
+        }
+    }
+    createPlan(doc, overwrite = false) {
+        return this.direction === 'to-private'
+            ? copySldV1Plan(doc, overwrite) : copySldPrivatePlan(doc, overwrite);
     }
     isStale() {
         return this.snapshot !== undefined &&
             (this.snapshot.doc !== this.doc || this.snapshot.version !== this.docVersion);
     }
+    get copyTitle() {
+        return this.direction === 'to-private'
+            ? msg('Copy SLDv1 to SLD Private') : msg('Copy SLD Private to SLDv1');
+    }
+    get noSourceMessage() {
+        return this.direction === 'to-private'
+            ? msg('No SLDv1 coordinates were found in this document. Nothing was changed.')
+            : msg('No SLD Private coordinates were found in this document. Nothing was changed.');
+    }
+    get noSource() {
+        return this.noChanges && this.plan?.unchanged === 0;
+    }
+    get noChanges() {
+        return this.plan !== undefined && this.plan.issues.length === 0 &&
+            this.plan.copied === 0 && this.plan.conflicts === 0;
+    }
+    get canCopy() {
+        return this.doc !== undefined && this.plan !== undefined &&
+            this.plan.issues.length === 0 && !this.noChanges && !this.isStale();
+    }
+    renderIntroduction() {
+        return b `<p>${this.direction === 'to-private'
+            ? msg('SLDv1 is the older OpenSCD single-line diagram layout format. This copies its positions and drawing information into SLD Private, the format used by the current SLD editor. The original SLDv1 data is kept.')
+            : msg('SLD Private is the layout format used by the current OpenSCD single-line diagram editor. This copies its positions and drawing information into SLDv1, the older format. The original SLD Private data is kept.')}</p>`;
+    }
     render() {
         return b `<oscd-dialog>
-      <div slot="headline">${msg('Copy SLDv1 to SLD Private')}</div>
+      <div slot="headline">${this.copyTitle}</div>
       <div slot="content">
-        <p>${msg('Copy old layout data without removing the source. Existing destinations are skipped unless you choose to overwrite all conflicts.')}</p>
+        ${this.showIntroduction && this.canCopy ? this.renderIntroduction() : A}
         ${this.doc === undefined ? b `<p role="alert">${msg('Open a document first.')}</p>` : A}
-        ${this.result !== '' ? b `<p role="status">${this.result}</p>` : A}
-        ${this.result === '' && this.isStale() ? b `<p role="alert">${msg('The document changed. Close and reopen this plugin before copying.')}</p>` : A}
-        ${this.plan === undefined ? A : b `
-          <p>${msg('New layout records to copy:')} ${this.plan.copied}</p>
-          ${this.plan.copied === 0 && this.plan.conflicts === 0 && this.plan.issues.length === 0
-            ? b `<p>${msg('No supported SLDv1 coordinates found.')}</p>` : A}
-          <p>${msg('Existing destination conflicts:')} ${this.plan.conflicts}</p>
+        ${this.preferenceError !== '' ? b `<p role="alert">${this.preferenceError}</p>` : A}
+        ${this.isStale() ? b `<p role="alert">${msg('The document changed. Close and reopen this plugin before copying.')}</p>` : A}
+        ${this.noChanges ? b `<p>${this.noSource
+            ? this.noSourceMessage
+            : msg('No changes needed. Destination layout already matches the source.')}</p>` : A}
+        ${this.plan === undefined || this.noSource ? A : b `
+          ${this.canCopy ? b `<p>${msg('New layout records to copy:')} ${this.plan.copied}</p>` : A}
+          ${this.plan.notes.map(note => b `<p role="note">${note}</p>`)}
           ${this.plan.issues.length > 0 ? b `
             <p role="alert">${msg('Nothing will be copied until these issues are resolved:')}</p>
             <ul>${this.plan.issues.map(issue => b `<li>${issue}</li>`)}</ul>
           ` : A}
-          ${this.plan.conflicts > 0 && this.result === '' ? b `
-            <label>
-              <oscd-checkbox .checked=${this.overwrite} @change=${this.handleOverwrite}></oscd-checkbox>
-              ${msg('Overwrite ALL conflicts (unchecked: skip ALL conflicts). Destination-only fields are retained.')}
-            </label>
+          ${this.plan.conflicts > 0 ? b `
+            <p>${msg(str `${this.plan.conflicts} destination layout records differ from the source.`)}</p>
+            <p>${msg('Skip existing copies only missing destinations. Overwrite existing also updates every differing destination. Destination-only scalar fields are retained; connectivity paths are replaced as a complete set. Matching layouts remain unchanged. Each connectivity path set counts as one layout record.')}</p>
           ` : A}
         `}
+        ${this.showIntroduction && this.canCopy ? b `
+          <label class="introduction-preference">
+            <oscd-checkbox .checked=${this.hideIntroduction} @change=${this.handleIntroductionChange}></oscd-checkbox>
+            ${msg("Don't show this introduction again")}
+          </label>
+        ` : A}
       </div>
       <div slot="actions">
-        <oscd-text-button @click=${() => this.dialog?.close()}>${this.result === '' ? msg('Cancel') : msg('Close')}</oscd-text-button>
-        ${this.result !== '' ? A : b `
+        <oscd-text-button @click=${() => this.dialog?.close()}>${this.canCopy ? msg('Cancel') : msg('Close')}</oscd-text-button>
+        ${this.plan !== undefined && this.plan.issues.length === 0 && !this.noChanges ? b `
+          ${this.plan.conflicts > 0 ? b `
+            <oscd-text-button
+              .disabled=${this.doc === undefined || this.isStale() || this.copying}
+              @click=${() => this.handleCopy()}
+            >${msg('Skip existing')}</oscd-text-button>
+          ` : A}
           <oscd-filled-button
-            .disabled=${this.doc === undefined || this.isStale() || this.plan === undefined ||
-            this.plan.issues.length > 0 || (this.plan.copied === 0 && !this.overwrite)}
-            @click=${this.handleCopy}
-          >${msg('Copy')}</oscd-filled-button>
-        `}
+            .disabled=${this.doc === undefined || this.isStale() || this.copying}
+            @click=${() => this.handleCopy((this.plan?.conflicts ?? 0) > 0)}
+          >${this.plan.conflicts > 0 ? msg('Overwrite existing') : msg('Copy')}</oscd-filled-button>
+        ` : A}
       </div>
-    </oscd-dialog>`;
+    </oscd-dialog>
+    <oscd-snackbar></oscd-snackbar>`;
     }
 }
-OscdMenuCopySldv1Sldpriv.scopedElements = {
+OscdCoordinateCopyDialog.scopedElements = {
     'oscd-dialog': OscdDialog,
     'oscd-checkbox': OscdCheckbox,
     'oscd-text-button': OscdTextButton,
     'oscd-filled-button': OscdFilledButton,
+    'oscd-snackbar': OscdSnackbar,
 };
-OscdMenuCopySldv1Sldpriv.styles = i$4 `
+OscdCoordinateCopyDialog.styles = i$5 `
+    oscd-snackbar {
+      --oscd-snackbar-font-family: var(--oscd-theme-font-family, Roboto, sans-serif);
+    }
     :host { display: block; }
     label { display: flex; align-items: center; gap: 12px; }
+    .introduction-preference { margin-top: 24px; }
   `;
 __decorate([
-    n({ attribute: false })
-], OscdMenuCopySldv1Sldpriv.prototype, "doc", void 0);
+    n$1({ attribute: false })
+], OscdCoordinateCopyDialog.prototype, "doc", void 0);
 __decorate([
-    n({ type: Number })
-], OscdMenuCopySldv1Sldpriv.prototype, "docVersion", void 0);
+    n$1({ type: Number })
+], OscdCoordinateCopyDialog.prototype, "docVersion", void 0);
 __decorate([
-    r()
-], OscdMenuCopySldv1Sldpriv.prototype, "plan", void 0);
-__decorate([
-    r()
-], OscdMenuCopySldv1Sldpriv.prototype, "overwrite", void 0);
+    n$1({ attribute: false })
+], OscdCoordinateCopyDialog.prototype, "direction", void 0);
 __decorate([
     r()
-], OscdMenuCopySldv1Sldpriv.prototype, "result", void 0);
+], OscdCoordinateCopyDialog.prototype, "plan", void 0);
+__decorate([
+    r()
+], OscdCoordinateCopyDialog.prototype, "showIntroduction", void 0);
+__decorate([
+    localstorage({ namespace: 'oscd-coordinate-copy', default: false }),
+    r()
+], OscdCoordinateCopyDialog.prototype, "introductionDismissed", void 0);
+__decorate([
+    r()
+], OscdCoordinateCopyDialog.prototype, "hideIntroduction", void 0);
+__decorate([
+    r()
+], OscdCoordinateCopyDialog.prototype, "preferenceError", void 0);
+__decorate([
+    r()
+], OscdCoordinateCopyDialog.prototype, "copying", void 0);
 __decorate([
     e$2('oscd-dialog')
-], OscdMenuCopySldv1Sldpriv.prototype, "dialog", void 0);
+], OscdCoordinateCopyDialog.prototype, "dialog", void 0);
+__decorate([
+    e$2('oscd-snackbar')
+], OscdCoordinateCopyDialog.prototype, "snackbar", void 0);
+
+class OscdMenuCopySldv1Sldpriv extends ScopedElementsMixin(i$2) {
+    constructor() {
+        super(...arguments);
+        this.docVersion = 0;
+    }
+    async run() {
+        await this.updateComplete;
+        if (this.copier === undefined) {
+            throw new Error('The coordinate copy dialog is unavailable.');
+        }
+        await this.copier.run();
+    }
+    render() {
+        return b `<oscd-coordinate-copy-dialog
+      id="oscd-menu-copy-sldv1-sldpriv"
+      .doc=${this.doc} .docVersion=${this.docVersion} .direction=${'to-private'}
+    ></oscd-coordinate-copy-dialog>`;
+    }
+}
+OscdMenuCopySldv1Sldpriv.scopedElements = {
+    'oscd-coordinate-copy-dialog': OscdCoordinateCopyDialog,
+};
+__decorate([
+    n$1({ attribute: false })
+], OscdMenuCopySldv1Sldpriv.prototype, "doc", void 0);
+__decorate([
+    n$1({ type: Number })
+], OscdMenuCopySldv1Sldpriv.prototype, "docVersion", void 0);
+__decorate([
+    e$2('oscd-coordinate-copy-dialog')
+], OscdMenuCopySldv1Sldpriv.prototype, "copier", void 0);
 
 export { OscdMenuCopySldv1Sldpriv as default };
 //# sourceMappingURL=oscd-menu-copy-sldv1-sldpriv.js.map
