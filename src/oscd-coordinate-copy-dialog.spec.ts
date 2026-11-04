@@ -7,12 +7,169 @@ import { OscdSnackbar } from '@omicronenergy/oscd-ui/snackbar/OscdSnackbar.js';
 import { XMLEditor } from '@openscd/oscd-editor';
 
 import OscdCoordinateCopyDialog from './oscd-coordinate-copy-dialog.js';
-import { copySldPrivatePlan, copySldV1Plan, sldV1Ns } from './foundation/coordinate-systems.js';
+import { copySldPrivatePlan, copySldV1Plan, sldV1Ns, sxyNs } from './foundation/coordinate-systems.js';
 import { privType, sldNs } from './foundation/layout-util.js';
+import { copyPrivateToSxyPlan, copySxyPlan } from './foundation/sxy-coordinates.js';
 
 import type { EditEventV2 } from '@openscd/oscd-api';
 
 customElements.define('test-copy-sld', OscdCoordinateCopyDialog);
+
+(['sxy-to-private', 'to-sxy'] as const).forEach(direction => describe(`SXY copy workflow (${direction})`, () => {
+  const toPrivate = direction === 'sxy-to-private';
+  const id = toPrivate ? 'oscd-menu-copy-sxy-sldpriv' : 'oscd-menu-copy-sldpriv-sxy';
+  const preference = `oscd-coordinate-copy:${id}:introductionDismissed`;
+  let element: OscdCoordinateCopyDialog;
+  let dialog: OscdDialog;
+  let snackbar: OscdSnackbar;
+  let transactions: EditEventV2[];
+
+  function parse(body: string): XMLDocument {
+    return new DOMParser().parseFromString(
+      `<SCL xmlns="http://www.iec.ch/61850/2003/SCL" xmlns:xy="${sxyNs}" xmlns:n="${sldNs}">${body}</SCL>`,
+      'application/xml',
+    );
+  }
+
+  async function create(doc: XMLDocument) {
+    const host = document.createElement('test-copy-sld');
+    if (!(host instanceof OscdCoordinateCopyDialog)) {
+      throw new Error('Copier did not upgrade');
+    }
+    host.id = id;
+    host.direction = direction;
+    host.doc = doc;
+    element = await fixture<OscdCoordinateCopyDialog>(host);
+    const foundDialog = element.shadowRoot?.querySelector('oscd-dialog');
+    const foundSnackbar = element.shadowRoot?.querySelector('oscd-snackbar');
+    if (!(foundDialog instanceof OscdDialog) || !(foundSnackbar instanceof OscdSnackbar)) {
+      throw new Error('Feedback components did not upgrade');
+    }
+    dialog = foundDialog;
+    snackbar = foundSnackbar;
+    dialog.quick = true;
+    const editor = new XMLEditor();
+    transactions = [];
+    element.addEventListener('oscd-edit-v2', (event) => {
+      transactions.push(event);
+      editor.commit(event.detail.edit);
+    });
+    await element.run();
+  }
+
+  async function click(label: string) {
+    const button = Array.from(element.shadowRoot?.querySelectorAll('oscd-filled-button, oscd-text-button') ?? [])
+      .find(candidate => candidate.textContent?.trim() === label);
+    if (!(button instanceof OscdFilledButton || button instanceof OscdTextButton)) {
+      throw new Error(`Missing ${label} action`);
+    }
+    button.click();
+    await element.updateComplete;
+    await waitUntil(() => !dialog.open);
+  }
+
+  beforeEach(() => localStorage.removeItem(preference));
+  afterEach(async () => {
+    await dialog?.close();
+    snackbar?.close();
+    localStorage.removeItem(preference);
+  });
+
+  for (const overwrite of [false, true]) {
+    it(`uses ${overwrite ? 'overwrite' : 'skip'} and reports only actual copies`, async () => {
+      await create(parse(`<Substation name="S" xy:x="8" xy:y="0">
+        <Private type="${privType}"><n:SLDAttributes n:x="1" n:y="0" n:w="40" n:h="40"/></Private>
+        <VoltageLevel name="V" ${toPrivate ? 'xy:x="2" xy:y="3"' : ''}>
+          ${toPrivate ? '' : `<Private type="${privType}"><n:SLDAttributes n:x="10" n:y="3"/></Private>`}
+        </VoltageLevel></Substation>`));
+      expect(element.shadowRoot?.textContent).to.contain('1 destination layout records differ');
+      expect(element.shadowRoot?.textContent).to.contain(toPrivate
+        ? 'SXY stores positions relative to their containers'
+        : 'Moving a container can also move existing items inside it');
+      const content = element.shadowRoot?.querySelector('[slot="content"]');
+      expect(content?.lastElementChild?.classList.contains('introduction-preference')).to.equal(true);
+      await click(overwrite ? 'Overwrite existing' : 'Skip existing');
+      expect(transactions).to.have.lengthOf(1);
+      await waitUntil(() => snackbar.shadowRoot?.querySelector('[role="status"]') !== null);
+      expect(snackbar.shadowRoot?.textContent).to.contain('Copied');
+      const root = element.doc?.querySelector('Substation');
+      const result = toPrivate ? root?.getElementsByTagNameNS(sldNs, 'SLDAttributes')[0] : root;
+      expect(result?.getAttributeNS(toPrivate ? sldNs : sxyNs, 'x')).to.equal(overwrite
+        ? (toPrivate ? '8' : '1') : (toPrivate ? '1' : '8'));
+    });
+  }
+
+  for (const matching of [false, true]) {
+    it(`shows only Close for ${matching ? 'matching' : 'absent'} positions, with no snackbar or preference changes`, async () => {
+      const doc = matching
+        ? parse(`<Substation name="S" xy:x="1" xy:y="2">
+            <Private type="${privType}"><n:SLDAttributes n:x="1" n:y="2" n:w="10" n:h="10"/></Private>
+          </Substation>`)
+        : parse('<Substation name="S"/>');
+      const before = doc.documentElement.cloneNode(true);
+      await create(doc);
+      const savedPreference = localStorage.getItem(preference);
+      expect(Array.from(element.shadowRoot?.querySelectorAll('oscd-text-button, oscd-filled-button') ?? [])
+        .map(button => button.textContent?.trim())).to.deep.equal(['Close']);
+      expect(element.shadowRoot?.querySelector('oscd-checkbox')).to.equal(null);
+      await click('Close');
+      expect(transactions).to.have.lengthOf(0);
+      expect(snackbar.shadowRoot?.querySelector('[role="status"]')).to.equal(null);
+      expect(localStorage.getItem(preference)).to.equal(savedPreference);
+      expect(doc.documentElement.isEqualNode(before)).to.equal(true);
+    });
+  }
+
+  it('closes silently when every source position is skipped', async () => {
+    await create(parse(`<Substation name="S" xy:x="8" xy:y="0">
+      <Private type="${privType}"><n:SLDAttributes n:x="1" n:y="0" n:w="10" n:h="10"/></Private>
+    </Substation>`));
+    await click('Skip existing');
+    expect(transactions).to.have.lengthOf(0);
+    expect(snackbar.shadowRoot?.querySelector('[role="status"]')).to.equal(null);
+  });
+
+  it('persists direction-specific dismissal and then runs exact conflict-free copies without onboarding', async () => {
+    const doc = toPrivate
+      ? parse('<Substation name="S" xy:x="0" xy:y="0"/>')
+      : parse(`<Substation name="S"><Private type="${privType}"><n:SLDAttributes n:x="1" n:y="2"/></Private></Substation>`);
+    await create(doc);
+    const checkbox = element.shadowRoot?.querySelector('oscd-checkbox');
+    if (!(checkbox instanceof OscdCheckbox)) {
+      throw new Error('Checkbox did not upgrade');
+    }
+    checkbox.click();
+    await checkbox.updateComplete;
+    await element.updateComplete;
+    await click('Copy');
+    expect(localStorage.getItem(preference)).to.equal('true');
+    snackbar.close();
+    const fresh = toPrivate
+      ? parse('<Substation name="T" xy:x="2" xy:y="3"/>')
+      : parse(`<Substation name="T"><Private type="${privType}"><n:SLDAttributes n:x="4" n:y="5"/></Private></Substation>`);
+    element.doc = fresh;
+    await element.updateComplete;
+    await element.run();
+    expect(dialog.open).to.equal(false);
+    expect(transactions).to.have.lengthOf(2);
+    expect((toPrivate ? copySxyPlan(fresh) : copyPrivateToSxyPlan(fresh)).edits).to.deep.equal([]);
+  });
+
+  if (!toPrivate) {
+    it('requires a visible rounding warning even when the introduction is dismissed', async () => {
+      localStorage.setItem(preference, 'true');
+      await create(parse(`<Substation name="S"><Private type="${privType}">
+        <n:SLDAttributes n:x="1.6" n:y="2.4"/></Private></Substation>`));
+      expect(dialog.open).to.equal(true);
+      expect(transactions).to.have.lengthOf(0);
+      expect(element.shadowRoot?.textContent).to.contain('rounding to the nearest integer');
+      expect(element.shadowRoot?.querySelector('oscd-checkbox')).to.equal(null);
+      await click('Copy');
+      expect(transactions).to.have.lengthOf(1);
+      expect(element.doc?.querySelector('Substation')?.getAttributeNS(sxyNs, 'x')).to.equal('2');
+    });
+  }
+}));
 
 function documentWithConflicts(toPrivate: boolean): XMLDocument {
   return new DOMParser().parseFromString(

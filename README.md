@@ -32,7 +32,11 @@ unusual transformer decorations can require manual adjustment.
 
 ## Coordinate tools
 
-Three additional, independent menu plugins are included. They do not automatically
+See [Coordinate copier mappings](COORDINATE-MAPPINGS.md) for the developer
+contract: field/structure mappings, coordinate arithmetic, and intentional limits
+for all four directions.
+
+Five additional, independent menu plugins are included. They do not automatically
 synchronize competing coordinate systems or change auto-layout behavior.
 
 | Plugin | Package export / browser bundle |
@@ -40,14 +44,16 @@ synchronize competing coordinate systems or change auto-layout behavior.
 | SLD positioner | `oscd-menu-sld-positioner.js` |
 | Copy SLDv1 to SLD Private | `oscd-menu-copy-sldv1-sldpriv.js` |
 | Copy SLD Private to SLDv1 | `oscd-menu-copy-sldpriv-sldv1.js` |
+| Copy SXY to SLD Private | `oscd-menu-copy-sxy-sldpriv.js` |
+| Copy SLD Private to SXY | `oscd-menu-copy-sldpriv-sxy.js` |
 | SLD Coords cleaner | `oscd-menu-sld-coords-cleaner.js` |
 
-Both copiers retain all source data, including IED placements and connectivity
+The SLDv1 copiers retain all source data, including IED placements and connectivity
 vertices. A direction-specific introduction explains the older SLDv1 layout
 format and the current editor's SLD Private format. Check **Don't show
 this introduction again** and submit to suppress it for that plugin in this
 browser. The preference uses oscd-ui's `@localstorage` decorator keyed by the
-plugin ID; the two directions have independent preferences.
+plugin ID; each direction has an independent preference.
 
 If the selected source format has no coordinates, or all destination layouts
 already match, a short dialog with **Close** is always shown instead. It explains
@@ -105,6 +111,51 @@ migration when SLDv1 is present, even if SLD Private data also exists. To inspec
 Private data without migrating a retained SLDv1 copy, use the cleaner to remove
 SLDv1 explicitly from a working copy.
 
+### SXY position copying
+
+The SXY pair uses the coordinate model described in IEC 61850-6 Annex C.1:
+integer object/grid coordinates relative to parent elements, rather than pixel
+positions. The reference inspected for this implementation is the supplied
+Edition 2.1 draft, printed pages 179-180; Annex C and its example schema are
+informative. Compatibility with every vendor interpretation is not claimed.
+
+Supported owners are Substation, VoltageLevel, Bay, ConductingEquipment,
+PowerTransformer, and ConnectivityNode. Import sums ancestor offsets to obtain
+absolute SLD positions. Missing axes contribute zero. Signed relative offsets
+are accepted when the resulting absolute position is nonnegative. No CoMPAS
+display scale or vendor-specific drawing fields are applied.
+
+Missing Substation/VoltageLevel/Bay dimensions are derived from effective
+destination positions; existing dimensions are retained, even if too small.
+These inferred bounds are target-format adaptations, not original SXY data.
+ConnectivityNode positions are preserved as scalar point metadata; the SLD
+editor draws connections from Section/Vertex paths, which this copier does
+not generate. A position-only import is not a complete rendered diagram.
+
+Export rounds absolute SLD positions to the nearest integer, then subtracts
+effective ancestor offsets to produce relative SXY positions. Fractional source
+positions produce an explicit warning before copying, even if onboarding is
+dismissed. Rounding can alter spacing or make positions coincide. It is not
+repeated at each relative hierarchy level.
+
+Only elements with explicit supported source positions are repositioned.
+An element without source positions keeps its existing SXY attributes exactly:
+moving its container can therefore move it in the resulting drawing.
+Skip/overwrite applies to position pairs; other destination fields remain.
+Sources, ABB/vendor metadata, and other coordinate systems remain untouched.
+
+SXY `dir` and SLD rotation are not converted: a preferred connection axis is
+not an exact rotation mapping. Labels, styling, explicit dimensions, scoped
+IED placements, winding details, and connection paths have no mapping in this
+position-only implementation. Relevant source records outside the supported
+mapping are reported, not deleted or guessed.
+
+The SXY pair shares the dismissible direction-specific introduction, mandatory
+conflict decisions, Close-only empty/matching dialogs, and actual-edit-only
+snackbars described above.
+
+### Coordinate cleanup
+
 The cleaner detects SLDv1, SLD Private, and IEC SXY data by namespace URI.
 Detected systems are enabled but initially unchecked. Selecting every detected
 system requires the additional acknowledgment:
@@ -118,7 +169,6 @@ declarations are removed, but declarations referenced by QName metadata remain.
 
 Each operation is one undoable EditV2 transaction. A changed document or
 `docVersion` invalidates an open confirmation; close and reopen the plugin.
-SXY is supported by detection and cleanup only; SXY conversion is not implemented.
 
 Register the additional plugins in the host's scoped registry just like
 auto-layout, using their default class exports:
@@ -128,11 +178,17 @@ import OscdMenuCopySldv1Sldpriv from
   '@omicronenergy/oscd-menu-coord-tools/oscd-menu-copy-sldv1-sldpriv.js';
 import OscdMenuCopySldprivSldv1 from
   '@omicronenergy/oscd-menu-coord-tools/oscd-menu-copy-sldpriv-sldv1.js';
+import OscdMenuCopySxySldpriv from
+  '@omicronenergy/oscd-menu-coord-tools/oscd-menu-copy-sxy-sldpriv.js';
+import OscdMenuCopySldprivSxy from
+  '@omicronenergy/oscd-menu-coord-tools/oscd-menu-copy-sldpriv-sxy.js';
 import OscdMenuSldCoordsCleaner from
   '@omicronenergy/oscd-menu-coord-tools/oscd-menu-sld-coords-cleaner.js';
 
 shell.registry.define('oscd-menu-copy-sldv1-sldpriv', OscdMenuCopySldv1Sldpriv);
 shell.registry.define('oscd-menu-copy-sldpriv-sldv1', OscdMenuCopySldprivSldv1);
+shell.registry.define('oscd-menu-copy-sxy-sldpriv', OscdMenuCopySxySldpriv);
+shell.registry.define('oscd-menu-copy-sldpriv-sxy', OscdMenuCopySldprivSxy);
 shell.registry.define('oscd-menu-sld-coords-cleaner', OscdMenuSldCoordsCleaner);
 ```
 

@@ -11,6 +11,7 @@ import { css, html, LitElement, nothing } from 'lit';
 import { property, query, state } from 'lit/decorators.js';
 
 import { copySldPrivatePlan, copySldV1Plan } from './foundation/coordinate-systems.js';
+import { copyPrivateToSxyPlan, copySxyPlan } from './foundation/sxy-coordinates.js';
 
 import type { CopyPlan } from './foundation/coordinate-systems.js';
 
@@ -30,7 +31,7 @@ export default class OscdCoordinateCopyDialog extends ScopedElementsMixin(LitEle
   docVersion = 0;
 
   @property({ attribute: false })
-  direction: 'to-private' | 'to-sldv1' = 'to-private';
+  direction: 'to-private' | 'to-sldv1' | 'sxy-to-private' | 'to-sxy' = 'to-private';
 
   @state()
   private plan?: CopyPlan;
@@ -138,8 +139,12 @@ export default class OscdCoordinateCopyDialog extends ScopedElementsMixin(LitEle
   }
 
   private createPlan(doc: XMLDocument, overwrite = false): CopyPlan {
-    return this.direction === 'to-private'
-      ? copySldV1Plan(doc, overwrite) : copySldPrivatePlan(doc, overwrite);
+    switch (this.direction) {
+      case 'to-private': return copySldV1Plan(doc, overwrite);
+      case 'to-sldv1': return copySldPrivatePlan(doc, overwrite);
+      case 'sxy-to-private': return copySxyPlan(doc, overwrite);
+      case 'to-sxy': return copyPrivateToSxyPlan(doc, overwrite);
+    }
   }
 
   private isStale(): boolean {
@@ -148,11 +153,21 @@ export default class OscdCoordinateCopyDialog extends ScopedElementsMixin(LitEle
   }
 
   private get copyTitle(): string {
-    return this.direction === 'to-private'
-      ? msg('Copy SLDv1 to SLD Private') : msg('Copy SLD Private to SLDv1');
+    switch (this.direction) {
+      case 'to-private': return msg('Copy SLDv1 to SLD Private');
+      case 'to-sldv1': return msg('Copy SLD Private to SLDv1');
+      case 'sxy-to-private': return msg('Copy SXY to SLD Private');
+      case 'to-sxy': return msg('Copy SLD Private to SXY');
+    }
   }
 
   private get noSourceMessage(): string {
+    if (this.direction === 'sxy-to-private') {
+      return msg('No supported SXY plant positions were found in this document. Nothing was changed.');
+    }
+    if (this.direction === 'to-sxy') {
+      return msg('No supported SLD Private plant positions were found in this document. Nothing was changed.');
+    }
     return this.direction === 'to-private'
       ? msg('No SLDv1 coordinates were found in this document. Nothing was changed.')
       : msg('No SLD Private coordinates were found in this document. Nothing was changed.');
@@ -173,6 +188,12 @@ export default class OscdCoordinateCopyDialog extends ScopedElementsMixin(LitEle
   }
 
   private renderIntroduction() {
+    if (this.direction === 'sxy-to-private') {
+      return html`<p>${msg('SXY stores positions relative to their containers. This copies supported positions into the absolute positions used by SLD Private and derives missing container dimensions. Not all drawing information can be represented; connection routes are not generated. The original SXY data is kept.')}</p>`;
+    }
+    if (this.direction === 'to-sxy') {
+      return html`<p>${msg('Copies supported positions into SXY, where positions are relative to their containers. Not all SLD drawing information can be represented. Moving a container can also move existing items inside it. The original SLD Private data is kept.')}</p>`;
+    }
     return html`<p>${this.direction === 'to-private'
       ? msg('SLDv1 is the older OpenSCD single-line diagram layout format. This copies its positions and drawing information into SLD Private, the format used by the current SLD editor. The original SLDv1 data is kept.')
       : msg('SLD Private is the layout format used by the current OpenSCD single-line diagram editor. This copies its positions and drawing information into SLDv1, the older format. The original SLD Private data is kept.')}</p>`;
@@ -189,7 +210,7 @@ export default class OscdCoordinateCopyDialog extends ScopedElementsMixin(LitEle
         ${this.noChanges ? html`<p>${this.noSource
           ? this.noSourceMessage
           : msg('No changes needed. Destination layout already matches the source.')}</p>` : nothing}
-        ${this.plan === undefined || this.noSource ? nothing : html`
+        ${this.plan === undefined || (this.noSource && (this.direction === 'to-private' || this.direction === 'to-sldv1')) ? nothing : html`
           ${this.canCopy ? html`<p>${msg('New layout records to copy:')} ${this.plan.copied}</p>` : nothing}
           ${this.plan.notes.map(note => html`<p role="note">${note}</p>`)}
           ${this.plan.issues.length > 0 ? html`
@@ -198,7 +219,9 @@ export default class OscdCoordinateCopyDialog extends ScopedElementsMixin(LitEle
           ` : nothing}
           ${this.plan.conflicts > 0 ? html`
             <p>${msg(str`${this.plan.conflicts} destination layout records differ from the source.`)}</p>
-            <p>${msg('Skip existing copies only missing destinations. Overwrite existing also updates every differing destination. Destination-only scalar fields are retained; connectivity paths are replaced as a complete set. Matching layouts remain unchanged. Each connectivity path set counts as one layout record.')}</p>
+            <p>${this.direction === 'to-sxy' || this.direction === 'sxy-to-private'
+              ? msg('Skip existing copies only missing positions. Overwrite existing also updates differing positions. Other destination data is retained. Elements without source positions are not repositioned; existing SXY child offsets stay unchanged when their container moves.')
+              : msg('Skip existing copies only missing destinations. Overwrite existing also updates every differing destination. Destination-only scalar fields are retained; connectivity paths are replaced as a complete set. Matching layouts remain unchanged. Each connectivity path set counts as one layout record.')}</p>
           ` : nothing}
         `}
         ${this.showIntroduction && this.canCopy ? html`

@@ -177,7 +177,7 @@ function sameLayout(left: Element, right: Element): boolean {
     Array.from(left.children).every((child, index) => sameLayout(child, right.children[index]));
 }
 
-function privateReference(container: Element): Node | null {
+export function privateReference(container: Element): Node | null {
   // scl-lib's ordering helper uses tagName; normalize prefixed SCL in a detached view.
   const view = createElement(container.ownerDocument, container.localName, {});
   const children = Array.from(container.children);
@@ -190,7 +190,7 @@ function privateReference(container: Element): Node | null {
     ? children[Array.from(view.children).indexOf(reference)] : null;
 }
 
-function unusedPrefix(elements: Element[], base: string): string {
+export function unusedPrefix(elements: Element[], base: string): string {
   const prefixes = new Set(elements.flatMap(element =>
     Array.from(element.attributes)
       .filter(attribute => attribute.namespaceURI === xmlnsNs)
