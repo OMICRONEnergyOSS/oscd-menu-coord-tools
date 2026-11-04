@@ -53,6 +53,27 @@ sections for IED placements and connection paths.
 
 ## SXY ↔ SLD Private
 
+**Work in progress — significant limitations.** This is currently a position-only
+conversion, not a way to reproduce a complete, legible diagram. SXY only
+scratches the surface of the drawing information in the inspected IOP files.
+Reproducing their presentation requires investigating proprietary drawing
+metadata and any layout behavior supplied by the originating tools.
+
+| Finding in the inspected IOP files / current importer | Current shortcoming |
+| --- | --- |
+| ABB Private data contains `Line`, `Via`, `StopAt`, `Busbar`, and `Point` elements | Stored connection routing and busbar geometry are not converted; SLD Private needs Section/Vertex paths to draw connections |
+| ABB Private data also contains drawing sizes, fonts, and winding information | Additional presentation data is outside the SXY mapping |
+| SXY and ABB coordinates are not identical: examples include SXY x=`3` versus ABB x=`13`, and SXY y=`7` versus ABB y=`30` | Do not assume a simple namespace replacement or universal scale factor reproduces the proprietary layout |
+| The importer does not generate label positions; the current SLD editor defaults missing `lx/ly` to `(0,0)` | Labels can overlap at the origin |
+| Five conducting-equipment elements in the inspected HV-BUS example have no explicit SXY position | They remain unpositioned by this copier; the native tool's interpretation has not been established |
+| Derived container bounds cover positions, not measured labels and complete symbol footprints | Container boxes can be too tight for a readable drawing |
+
+Coordinate-value, preservation, and undo tests have passed, but **these do not
+establish visual fidelity or diagram readability**. We do not have the originating
+IOP tools available to confirm which details they read from proprietary metadata
+and which they derive from electrical topology. Proprietary-data conversion is
+not currently implemented.
+
 SXY is the coordinate extension described in IEC 61850-6 Annex C.1. It stores
 integer positions **relative to parent elements**; SLD Private stores absolute
 positions. No pixel scaling or vendor rendering multiplier is applied.
