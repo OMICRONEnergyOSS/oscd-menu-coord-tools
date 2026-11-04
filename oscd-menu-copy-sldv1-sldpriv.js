@@ -29287,6 +29287,7 @@ const sldNs = 'https://openscd.org/SCL/SSD/SLD/v0';
 const xmlnsNs = 'http://www.w3.org/2000/xmlns/';
 
 const sldV1Ns = 'https://transpower.co.nz/SCL/SSD/SLD/v0';
+const sxyNs = 'http://www.iec.ch/61850/2003/SCLcoordinates';
 const legacyPrivateTypes = ['Transpower-SLD-Vertices', 'OpenSCD-Linked-IEDs'];
 const layoutKeys = [
     'x', 'y', 'w', 'h', 'rot', 'lx', 'ly', 'kind', 'flip', 'color', 'weight', 'uuid',
@@ -29947,6 +29948,299 @@ function copySldPrivatePlan(doc, overwrite = false) {
     return { edits: issues.length === 0 ? edits : [], issues, conflicts, copied, unchanged, notes: [] };
 }
 
+const owners = new Set([
+    'Substation', 'VoltageLevel', 'Bay', 'ConductingEquipment', 'PowerTransformer', 'ConnectivityNode',
+]);
+const containers = new Set(['Substation', 'VoltageLevel', 'Bay']);
+const axes = ['x', 'y'];
+function description(element) {
+    return `${element.localName} ${element.getAttribute('name') ?? ''}`.trim();
+}
+function children(element, ns, name) {
+    return Array.from(element.children).filter(child => child.namespaceURI === ns && child.localName === name);
+}
+function numberValue(value, integer, owner, issues) {
+    if (value === null) {
+        return 0;
+    }
+    const text = value.trim();
+    const valid = integer ? /^[+-]?\d+$/.test(text) : /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(text);
+    const number = Number(text);
+    if (!valid || !Number.isFinite(number) ||
+        (integer && (number < -2147483648 || number > 2147483647))) {
+        issues.push(`Invalid ${integer ? 'SXY integer' : 'SLD position'} "${value}" on ${description(owner)}.`);
+        return 0;
+    }
+    return number;
+}
+function position(record, ns, integer, owner, issues) {
+    return [
+        numberValue(record.getAttributeNS(ns, 'x'), integer, owner, issues),
+        numberValue(record.getAttributeNS(ns, 'y'), integer, owner, issues),
+    ];
+}
+function hasPosition(record, ns) {
+    return axes.some(axis => record.hasAttributeNS(ns, axis));
+}
+function plantElements(doc) {
+    const ns = doc.documentElement.namespaceURI;
+    const result = [];
+    function visit(element) {
+        if (element.namespaceURI !== ns || element.localName === 'Private') {
+            return;
+        }
+        result.push(element);
+        Array.from(element.children).forEach(visit);
+    }
+    children(doc.documentElement, ns, 'Substation').forEach(visit);
+    return result;
+}
+function pointMatches(record, ns, point) {
+    return hasPosition(record, ns) && axes.every((axis, index) => {
+        const value = record.getAttributeNS(ns, axis);
+        return value === null ? point[index] === 0 : value.trim() !== '' && Number(value) === point[index];
+    });
+}
+function notesFor(ignored, points) {
+    const notes = [];
+    if (ignored > 0) {
+        notes.push(`${ignored} source layout record(s) contain information outside the supported plant-position mapping. Only supported x/y positions are copied; direction, rotation, labels, styling, dimensions, IED placements, and connection paths are not converted.`);
+    }
+    if (points > 0) {
+        notes.push(`${points} ConnectivityNode position(s) are point metadata, not connection paths. No wires or busbar routes are generated.`);
+    }
+    return notes;
+}
+/** IEC Annex C positions are parent-relative; SLD Private positions are absolute. */
+function copySxyPlan(doc, overwrite = false) {
+    const elements = plantElements(doc);
+    const all = [doc.documentElement, ...Array.from(doc.documentElement.getElementsByTagName('*'))];
+    const prefix = unusedPrefix(all, 'eosld');
+    const ns = doc.documentElement.namespaceURI;
+    const issues = [];
+    const edits = [];
+    const offsets = new Map();
+    const targets = new Map();
+    const accepted = new Set();
+    let conflicts = 0;
+    let copied = 0;
+    let unchanged = 0;
+    let ignored = 0;
+    let points = 0;
+    function target(owner) {
+        const cached = targets.get(owner);
+        if (cached !== undefined) {
+            return cached;
+        }
+        const privates = children(owner, ns, 'Private').filter(child => child.getAttribute('type') === privType);
+        const records = privates.flatMap(priv => children(priv, sldNs, 'SLDAttributes'));
+        if (privates.length > 1 || records.length > 1) {
+            issues.push(`Multiple SLD Private destinations on ${description(owner)}.`);
+            return undefined;
+        }
+        const original = privates[0];
+        const clone = original?.cloneNode(true);
+        const node = clone instanceof Element ? clone : createElement(doc, 'Private', { type: privType });
+        const record = children(node, sldNs, 'SLDAttributes')[0] ??
+            doc.createElementNS(sldNs, `${prefix}:SLDAttributes`);
+        if (record.parentElement === null) {
+            node.appendChild(record);
+        }
+        const result = { original, node, record, changed: false };
+        targets.set(owner, result);
+        return result;
+    }
+    for (const owner of elements) {
+        const parent = owner.parentElement === null ? [0, 0] : offsets.get(owner.parentElement) ?? [0, 0];
+        const relative = position(owner, sxyNs, true, owner, issues);
+        const absolute = [parent[0] + relative[0], parent[1] + relative[1]];
+        offsets.set(owner, absolute);
+        const source = Array.from(owner.attributes).filter(attribute => attribute.namespaceURI === sxyNs);
+        if (source.some(attribute => !axes.some(axis => axis === attribute.localName)) ||
+            (source.length > 0 && !owners.has(owner.localName))) {
+            ignored += 1;
+        }
+        if (!owners.has(owner.localName) || !hasPosition(owner, sxyNs)) {
+            continue;
+        }
+        if (absolute.some(value => !Number.isSafeInteger(value) || value < 0)) {
+            issues.push(`The absolute SXY position of ${description(owner)} cannot be represented as a nonnegative SLD position.`);
+            continue;
+        }
+        const destination = target(owner);
+        if (destination === undefined) {
+            continue;
+        }
+        if (pointMatches(destination.record, sldNs, absolute)) {
+            unchanged += 1;
+            accepted.add(owner);
+            continue;
+        }
+        if (hasPosition(destination.record, sldNs)) {
+            conflicts += 1;
+            if (!overwrite) {
+                continue;
+            }
+        }
+        axes.forEach((axis, index) => destination.record.setAttributeNS(sldNs, `${prefix}:${axis}`, String(absolute[index])));
+        destination.changed = true;
+        accepted.add(owner);
+        copied += 1;
+        if (owner.localName === 'ConnectivityNode') {
+            points += 1;
+        }
+    }
+    // Bounds use effective destination positions, including retained conflicting layouts.
+    const bounds = new Map();
+    const needsBounds = new Set();
+    for (const owner of accepted) {
+        let ancestor = owner;
+        while (ancestor !== null && ancestor !== doc.documentElement) {
+            if (containers.has(ancestor.localName)) {
+                needsBounds.add(ancestor);
+            }
+            ancestor = ancestor.parentElement;
+        }
+    }
+    for (const owner of [...elements].reverse()) {
+        const existing = children(owner, ns, 'Private').filter(child => child.getAttribute('type') === privType);
+        const record = targets.get(owner)?.record ?? existing.flatMap(priv => children(priv, sldNs, 'SLDAttributes'))[0];
+        if (record === undefined && !needsBounds.has(owner)) {
+            continue;
+        }
+        const origin = record === undefined ? [0, 0] : position(record, sldNs, false, owner, issues);
+        const extent = bounds.get(owner) ?? [origin[0] + 1, origin[1] + 1];
+        const dimensions = ['w', 'h'].map((axis, index) => {
+            const value = record?.getAttributeNS(sldNs, axis);
+            if (value === null || value === undefined) {
+                return Math.max(1, Math.ceil(extent[index] -
+                    (owner.localName === 'Substation' ? 0 : origin[index])));
+            }
+            const dimension = numberValue(value, false, owner, issues);
+            if (dimension < 1) {
+                issues.push(`Invalid SLD dimension on ${description(owner)}.`);
+            }
+            return dimension;
+        });
+        if (needsBounds.has(owner)) {
+            const destination = target(owner);
+            if (destination !== undefined) {
+                let changed = false;
+                ['w', 'h'].forEach((axis, index) => {
+                    if (!destination.record.hasAttributeNS(sldNs, axis)) {
+                        destination.record.setAttributeNS(sldNs, `${prefix}:${axis}`, String(dimensions[index]));
+                        changed = true;
+                    }
+                });
+                if (changed && !destination.changed) {
+                    copied += 1;
+                    if (accepted.has(owner)) {
+                        unchanged -= 1;
+                    }
+                }
+                destination.changed ||= changed;
+            }
+        }
+        const parent = owner.parentElement;
+        if (parent !== null) {
+            const previous = bounds.get(parent) ?? [0, 0];
+            bounds.set(parent, [
+                Math.max(previous[0], origin[0] + dimensions[0], extent[0]),
+                Math.max(previous[1], origin[1] + dimensions[1], extent[1]),
+            ]);
+        }
+    }
+    for (const [owner, destination] of targets) {
+        if (!destination.changed) {
+            continue;
+        }
+        const reference = destination.original?.nextSibling ?? privateReference(owner);
+        if (destination.original !== undefined) {
+            edits.push({ node: destination.original });
+        }
+        edits.push({ parent: owner, node: destination.node, reference });
+    }
+    if (edits.length > 0) {
+        edits.unshift({
+            element: doc.documentElement, attributes: {},
+            attributesNS: { [xmlnsNs]: { [`xmlns:${prefix}`]: sldNs } },
+        });
+    }
+    return { edits: issues.length === 0 ? edits : [], issues, copied, conflicts, unchanged, notes: notesFor(ignored, points) };
+}
+/** Export changes only explicit source positions, never compensating retained children. */
+function copyPrivateToSxyPlan(doc, overwrite = false) {
+    const all = [doc.documentElement, ...Array.from(doc.documentElement.getElementsByTagName('*'))];
+    const prefix = unusedPrefix(all, 'sxy');
+    const ns = doc.documentElement.namespaceURI;
+    const issues = [];
+    const edits = [];
+    const offsets = new Map();
+    let copied = 0;
+    let conflicts = 0;
+    let unchanged = 0;
+    let ignored = 0;
+    let rounded = 0;
+    for (const owner of plantElements(doc)) {
+        const parent = owner.parentElement === null ? [0, 0] : offsets.get(owner.parentElement) ?? [0, 0];
+        const existing = position(owner, sxyNs, true, owner, issues);
+        let effective = [parent[0] + existing[0], parent[1] + existing[1]];
+        const privates = children(owner, ns, 'Private').filter(child => child.getAttribute('type') === privType);
+        const records = privates.flatMap(priv => children(priv, sldNs, 'SLDAttributes'));
+        if (privates.some(priv => Array.from(priv.children).some(child => child.namespaceURI === sldNs && child.localName !== 'SLDAttributes')) ||
+            records.some(record => Array.from(record.attributes).some(attribute => attribute.namespaceURI === sldNs && !axes.some(axis => axis === attribute.localName))) ||
+            (privates.length > 0 && !owners.has(owner.localName))) {
+            ignored += 1;
+        }
+        if (records.some(record => hasPosition(record, sldNs)) && owners.has(owner.localName)) {
+            if (privates.length > 1 || records.length > 1) {
+                issues.push(`Multiple SLD Private position sources on ${description(owner)}.`);
+            }
+            else {
+                const absolute = position(records[0], sldNs, false, owner, issues);
+                const quantized = absolute.map(value => Math.round(value));
+                const relative = [quantized[0] - parent[0], quantized[1] - parent[1]];
+                if (absolute.some((value, index) => value !== quantized[index])) {
+                    rounded += 1;
+                }
+                if (absolute.some(value => value < 0) ||
+                    relative.some(value => !Number.isInteger(value) || value < -2147483648 || value > 2147483647)) {
+                    issues.push(`The SLD position of ${description(owner)} cannot be represented as SXY integers.`);
+                }
+                else if (pointMatches(owner, sxyNs, relative)) {
+                    unchanged += 1;
+                }
+                else {
+                    const conflict = hasPosition(owner, sxyNs);
+                    if (conflict) {
+                        conflicts += 1;
+                    }
+                    if (!conflict || overwrite) {
+                        edits.push({
+                            element: owner, attributes: {},
+                            attributesNS: { [sxyNs]: { [`${prefix}:x`]: String(relative[0]), [`${prefix}:y`]: String(relative[1]) } },
+                        });
+                        effective = [quantized[0], quantized[1]];
+                        copied += 1;
+                    }
+                }
+            }
+        }
+        offsets.set(owner, effective);
+    }
+    if (edits.length > 0) {
+        edits.unshift({
+            element: doc.documentElement, attributes: {},
+            attributesNS: { [xmlnsNs]: { [`xmlns:${prefix}`]: sxyNs } },
+        });
+    }
+    const notes = notesFor(ignored, 0);
+    if (rounded > 0 && (copied > 0 || conflicts > 0)) {
+        notes.unshift(`${rounded} source position(s) use fractional values, represented by rounding to the nearest integer in SXY. Fractional positions cannot be represented exactly; rounding can change spacing or make positions coincide.`);
+    }
+    return { edits: issues.length === 0 ? edits : [], issues, copied, conflicts, unchanged, notes };
+}
+
 class OscdCoordinateCopyDialog extends ScopedElementsMixin(i$2) {
     constructor() {
         super(...arguments);
@@ -30033,18 +30327,32 @@ class OscdCoordinateCopyDialog extends ScopedElementsMixin(i$2) {
         }
     }
     createPlan(doc, overwrite = false) {
-        return this.direction === 'to-private'
-            ? copySldV1Plan(doc, overwrite) : copySldPrivatePlan(doc, overwrite);
+        switch (this.direction) {
+            case 'to-private': return copySldV1Plan(doc, overwrite);
+            case 'to-sldv1': return copySldPrivatePlan(doc, overwrite);
+            case 'sxy-to-private': return copySxyPlan(doc, overwrite);
+            case 'to-sxy': return copyPrivateToSxyPlan(doc, overwrite);
+        }
     }
     isStale() {
         return this.snapshot !== undefined &&
             (this.snapshot.doc !== this.doc || this.snapshot.version !== this.docVersion);
     }
     get copyTitle() {
-        return this.direction === 'to-private'
-            ? msg('Copy SLDv1 to SLD Private') : msg('Copy SLD Private to SLDv1');
+        switch (this.direction) {
+            case 'to-private': return msg('Copy SLDv1 to SLD Private');
+            case 'to-sldv1': return msg('Copy SLD Private to SLDv1');
+            case 'sxy-to-private': return msg('Copy SXY to SLD Private');
+            case 'to-sxy': return msg('Copy SLD Private to SXY');
+        }
     }
     get noSourceMessage() {
+        if (this.direction === 'sxy-to-private') {
+            return msg('No supported SXY plant positions were found in this document. Nothing was changed.');
+        }
+        if (this.direction === 'to-sxy') {
+            return msg('No supported SLD Private plant positions were found in this document. Nothing was changed.');
+        }
         return this.direction === 'to-private'
             ? msg('No SLDv1 coordinates were found in this document. Nothing was changed.')
             : msg('No SLD Private coordinates were found in this document. Nothing was changed.');
@@ -30061,6 +30369,12 @@ class OscdCoordinateCopyDialog extends ScopedElementsMixin(i$2) {
             this.plan.issues.length === 0 && !this.noChanges && !this.isStale();
     }
     renderIntroduction() {
+        if (this.direction === 'sxy-to-private') {
+            return b `<p>${msg('SXY stores positions relative to their containers. This copies supported positions into the absolute positions used by SLD Private and derives missing container dimensions. Not all drawing information can be represented; connection routes are not generated. The original SXY data is kept.')}</p>`;
+        }
+        if (this.direction === 'to-sxy') {
+            return b `<p>${msg('Copies supported positions into SXY, where positions are relative to their containers. Not all SLD drawing information can be represented. Moving a container can also move existing items inside it. The original SLD Private data is kept.')}</p>`;
+        }
         return b `<p>${this.direction === 'to-private'
             ? msg('SLDv1 is the older OpenSCD single-line diagram layout format. This copies its positions and drawing information into SLD Private, the format used by the current SLD editor. The original SLDv1 data is kept.')
             : msg('SLD Private is the layout format used by the current OpenSCD single-line diagram editor. This copies its positions and drawing information into SLDv1, the older format. The original SLD Private data is kept.')}</p>`;
@@ -30076,7 +30390,7 @@ class OscdCoordinateCopyDialog extends ScopedElementsMixin(i$2) {
         ${this.noChanges ? b `<p>${this.noSource
             ? this.noSourceMessage
             : msg('No changes needed. Destination layout already matches the source.')}</p>` : A}
-        ${this.plan === undefined || this.noSource ? A : b `
+        ${this.plan === undefined || (this.noSource && (this.direction === 'to-private' || this.direction === 'to-sldv1')) ? A : b `
           ${this.canCopy ? b `<p>${msg('New layout records to copy:')} ${this.plan.copied}</p>` : A}
           ${this.plan.notes.map(note => b `<p role="note">${note}</p>`)}
           ${this.plan.issues.length > 0 ? b `
@@ -30085,7 +30399,9 @@ class OscdCoordinateCopyDialog extends ScopedElementsMixin(i$2) {
           ` : A}
           ${this.plan.conflicts > 0 ? b `
             <p>${msg(str `${this.plan.conflicts} destination layout records differ from the source.`)}</p>
-            <p>${msg('Skip existing copies only missing destinations. Overwrite existing also updates every differing destination. Destination-only scalar fields are retained; connectivity paths are replaced as a complete set. Matching layouts remain unchanged. Each connectivity path set counts as one layout record.')}</p>
+            <p>${this.direction === 'to-sxy' || this.direction === 'sxy-to-private'
+            ? msg('Skip existing copies only missing positions. Overwrite existing also updates differing positions. Other destination data is retained. Elements without source positions are not repositioned; existing SXY child offsets stay unchanged when their container moves.')
+            : msg('Skip existing copies only missing destinations. Overwrite existing also updates every differing destination. Destination-only scalar fields are retained; connectivity paths are replaced as a complete set. Matching layouts remain unchanged. Each connectivity path set counts as one layout record.')}</p>
           ` : A}
         `}
         ${this.showIntroduction && this.canCopy ? b `

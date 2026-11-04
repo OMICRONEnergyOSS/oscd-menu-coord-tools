@@ -15,7 +15,7 @@ export default class OscdCoordinateCopyDialog extends OscdCoordinateCopyDialog_b
     };
     doc?: XMLDocument;
     docVersion: number;
-    direction: 'to-private' | 'to-sldv1';
+    direction: 'to-private' | 'to-sldv1' | 'sxy-to-private' | 'to-sxy';
     private plan?;
     private showIntroduction;
     private introductionDismissed?;

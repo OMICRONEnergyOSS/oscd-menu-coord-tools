@@ -15,6 +15,8 @@ export type CopyPlan = CoordinatePlan & {
     unchanged: number;
     notes: string[];
 };
+export declare function privateReference(container: Element): Node | null;
+export declare function unusedPrefix(elements: Element[], base: string): string;
 /** Copies into detached layout sections, so planning cannot change the live document. */
 export declare function copySldV1Plan(doc: XMLDocument, overwrite?: boolean): CopyPlan;
 /** Exports existing geometry without repositioning elements or removing source data. */
