@@ -14,10 +14,9 @@ const legacyPrivateTypes = ['Transpower-SLD-Vertices', 'OpenSCD-Linked-IEDs'];
 const layoutKeys = [
   'x', 'y', 'w', 'h', 'rot', 'lx', 'ly', 'kind', 'flip', 'color', 'weight', 'uuid',
 ];
+const textLayoutKeys = ['lx', 'ly', 'rot', 'color', 'weight'];
 const plantTags = new Set([
-  // Text/Private matches the editor for now, but violates SCL's Text content model.
-  // See https://github.com/openscd/oscd-extensions/issues/5.
-  'Text', 'Substation', 'VoltageLevel', 'Bay', 'ConductingEquipment',
+  'Substation', 'VoltageLevel', 'Bay', 'ConductingEquipment',
   'PowerTransformer', 'TransformerWinding', 'ConnectivityNode',
   'Terminal', 'NeutralPoint', 'Function', 'SubFunction', 'EqFunction', 'EqSubFunction',
 ]);
@@ -216,7 +215,6 @@ export function copySldV1Plan(doc: XMLDocument, overwrite = false): CopyPlan {
   let conflicts = 0;
   let copied = 0;
   let unchanged = 0;
-  let hasTextChanges = false;
   const sclNs = doc.documentElement.namespaceURI;
   const elements = allElements(doc);
   const substations = elements.filter(element => element.namespaceURI === sclNs &&
@@ -270,16 +268,19 @@ export function copySldV1Plan(doc: XMLDocument, overwrite = false): CopyPlan {
     return result;
   }
 
-  function writeAttributes(parent: Element, source: Element, target: Destination): void {
+  function writeAttributes(
+    parent: Element, source: Element, target: Destination,
+    recordName = 'SLDAttributes', keys = layoutKeys,
+  ): void {
     const values = Array.from(source.attributes).filter(attribute =>
-      attribute.namespaceURI === sldV1Ns && layoutKeys.includes(attribute.localName));
+      attribute.namespaceURI === sldV1Ns && keys.includes(attribute.localName));
     if (values.length === 0) {
       return;
     }
     const existing = Array.from(parent.children).filter(child =>
-      child.namespaceURI === sldNs && child.localName === 'SLDAttributes');
+      child.namespaceURI === sldNs && child.localName === recordName);
     if (existing.length > 1) {
-      issues.push('Multiple SLDAttributes destinations; resolve duplicates before copying.');
+      issues.push(`Multiple ${recordName} destinations; resolve duplicates before copying.`);
       return;
     }
     if (existing.length > 0 && values.every(attribute =>
@@ -287,15 +288,14 @@ export function copySldV1Plan(doc: XMLDocument, overwrite = false): CopyPlan {
       unchanged += 1;
       return;
     }
-    hasTextChanges ||= source.namespaceURI === sclNs && source.localName === 'Text';
     if (existing.some(record => Array.from(record.attributes).some(attribute =>
-      attribute.namespaceURI === sldNs && layoutKeys.includes(attribute.localName)))) {
+      attribute.namespaceURI === sldNs && keys.includes(attribute.localName)))) {
       conflicts += 1;
       if (!overwrite) {
         return;
       }
     }
-    const node = existing[0] ?? extension('SLDAttributes');
+    const node = existing[0] ?? extension(recordName);
     let changed = existing.length === 0;
     for (const attribute of values) {
       if (node.getAttributeNS(sldNs, attribute.localName) !== attribute.value) {
@@ -508,7 +508,8 @@ export function copySldV1Plan(doc: XMLDocument, overwrite = false): CopyPlan {
     if (attributes.length === 0 && element.namespaceURI !== sldV1Ns) {
       continue;
     }
-    validateAttributes(element, layoutKeys);
+    validateAttributes(element, element.localName === 'Text' && element.namespaceURI === sclNs
+      ? textLayoutKeys : layoutKeys);
     if (element.namespaceURI !== sclNs) {
       issues.push(`Unsupported SLDv1 coordinate owner: ${element.localName}.`);
     } else if (element.localName === 'IED' && element.parentElement === doc.documentElement) {
@@ -519,6 +520,19 @@ export function copySldV1Plan(doc: XMLDocument, overwrite = false): CopyPlan {
         issues.push(`Direct legacy IED "${name}" needs exactly one Substation for unambiguous placement.`);
       } else {
         copyIed(element, substations[0], name);
+      }
+    } else if (element.localName === 'Text') {
+      const owner = element.parentElement;
+      const texts = owner === null ? [] : Array.from(owner.children).filter(child =>
+        child.namespaceURI === sclNs && child.localName === 'Text');
+      if (owner === null || owner.namespaceURI !== sclNs ||
+          !plantTags.has(owner.localName) || texts.length !== 1) {
+        issues.push('Ambiguous or unsupported Text layout owner.');
+        continue;
+      }
+      const target = destination(owner);
+      if (target !== undefined) {
+        writeAttributes(target.node, element, target, 'TextLayout', textLayoutKeys);
       }
     } else if (plantTags.has(element.localName)) {
       const target = destination(element);
@@ -551,9 +565,6 @@ export function copySldV1Plan(doc: XMLDocument, overwrite = false): CopyPlan {
   const notes = retainedCoords > 0
     ? [`Scoped linked IED placements take precedence over ${retainedCoords} legacy Coords record(s), which are retained unchanged.`]
     : [];
-  if (hasTextChanges) {
-    notes.push('Copying Text layout to SLD Private uses a Private child inside Text for editor compatibility. This representation violates the SCL schema.');
-  }
   return { edits: issues.length === 0 ? edits : [], conflicts, copied, unchanged, issues, notes };
 }
 
@@ -799,6 +810,24 @@ export function copySldPrivatePlan(doc: XMLDocument, overwrite = false): CopyPla
     }
     containers.add(container);
     writeAttributes(container, layoutValues(source));
+    const textLayouts = Array.from(source.children).filter(child =>
+      child.namespaceURI === sldNs && child.localName === 'TextLayout');
+    if (textLayouts.length > 1) {
+      issues.push(`Multiple TextLayout sources on ${container.localName}.`);
+    }
+    for (const layout of textLayouts) {
+      if (layout.children.length > 0) {
+        issues.push('Unsupported children in TextLayout.');
+      }
+      const values = sourceAttributes(layout, textLayoutKeys);
+      const texts = Array.from(container.children).filter(child =>
+        child.namespaceURI === sclNs && child.localName === 'Text');
+      if (texts.length !== 1) {
+        issues.push(`TextLayout on ${container.localName} needs exactly one direct Text child.`);
+      } else {
+        writeAttributes(texts[0], values);
+      }
+    }
     const seen = new Set<string>();
     for (const child of Array.from(source.children)) {
       if (child.namespaceURI === sldNs && child.localName === 'Reference') {

@@ -106,35 +106,38 @@ describe('Text coordinate copying', () => {
   for (const toPrivate of [true, false]) {
     for (const overwrite of [false, true]) {
       it(`${toPrivate ? 'imports' : 'exports'} text layout with ${overwrite ? 'overwrite' : 'skip'} conflicts without altering mixed text content`, () => {
-        const values = { x: '0', y: '-2', lx: '3.5', ly: '4', rot: '1', color: '#ff0000', weight: '500' };
+        const values = { lx: '3.5', ly: '4', rot: '1', color: '#ff0000', weight: '500' };
         const ns = toPrivate ? sldV1Ns : sldNs;
         const targetNs = toPrivate ? sldNs : sldV1Ns;
         const fields = Object.entries(values).map(([key, value]) => `from:${key}="${value}"`).join(' ');
-        const text = (conflict: boolean) => {
+        const bay = (name: string, conflict: boolean) => {
           const record = !toPrivate || conflict
-            ? `<s:Private type="${privType}"><${toPrivate ? 'to' : 'from'}:SLDAttributes ${toPrivate ? 'to:lx="99"' : fields}/></s:Private>`
+            ? `<${toPrivate ? 'to' : 'from'}:TextLayout lx="DECOY" ${toPrivate ? 'to:lx="99"' : fields}/>`
             : '';
-          return `<s:Text source="urn:notes" lx="DECOY"
-            ${toPrivate ? fields : conflict ? 'to:lx="99"' : ''}>Feeder <![CDATA[<A>]]>
-Second line<vendor:Span> preserved</vendor:Span>${record}</s:Text>`;
+          return `<s:Bay name="${name}" ${toPrivate ? 'from:x="2"' : 'to:x="2"'}>
+            <s:Text source="urn:notes" lx="DECOY"
+              ${toPrivate ? fields : conflict ? 'to:lx="99"' : ''}>Feeder <![CDATA[<A>]]>
+Second line<vendor:Span> preserved</vendor:Span></s:Text>
+            <s:Private type="${privType}"><${toPrivate ? 'to' : 'from'}:SLDAttributes ${toPrivate ? 'to:x="2" to:y="7"' : 'from:x="2"'}/>
+              ${record}<vendor:Metadata>keep</vendor:Metadata></s:Private>
+          </s:Bay>`;
         };
         const doc = new DOMParser().parseFromString(
           `<s:SCL xmlns:s="${sclNs}" xmlns:from="${ns}" xmlns:to="${targetNs}" xmlns:vendor="${vendorNs}">
             <s:Substation name="S"><s:VoltageLevel name="V">
-              <s:Bay name="B1">${text(false)}</s:Bay><s:Bay name="B2">${text(true)}</s:Bay>
+              ${bay('B1', false)}${bay('B2', true)}
             </s:VoltageLevel></s:Substation>
           </s:SCL>`, 'application/xml',
         );
         const texts = Array.from(doc.getElementsByTagNameNS(sclNs, 'Text'));
         const content = texts.map(element => element.textContent);
-        const originals = texts.map(element => Array.from(element.childNodes).filter(child =>
-          !(child instanceof Element && child.localName === 'Private')));
+        const originals = texts.map(element => Array.from(element.childNodes));
         const before = doc.documentElement.cloneNode(true);
         const copy = toPrivate ? copySldV1Plan : copySldPrivatePlan;
         const plan = copy(doc, overwrite);
         expect(plan.issues).to.deep.equal([]);
         expect(plan.conflicts).to.equal(1);
-        expect(plan.notes.some(note => note.includes('violates the SCL schema'))).to.equal(toPrivate);
+        expect(plan.notes).to.deep.equal([]);
         expect(doc.documentElement.isEqualNode(before)).to.equal(true);
         const editor = new XMLEditor();
         editor.commit(plan.edits);
@@ -143,15 +146,20 @@ Second line<vendor:Span> preserved</vendor:Span>${record}</s:Text>`;
           originals[index].forEach(node => expect(node.parentNode).to.equal(element));
           expect(element.getAttribute('source')).to.equal('urn:notes');
           expect(element.getAttribute('lx')).to.equal('DECOY');
-          const source = toPrivate ? element : element.getElementsByTagNameNS(sldNs, 'SLDAttributes')[0];
+          const parent = element.parentElement!;
+          const source = toPrivate ? element : parent.getElementsByTagNameNS(sldNs, 'TextLayout')[0];
           for (const [key, value] of Object.entries(values)) {
             expect(source.getAttributeNS(ns, key)).to.equal(value);
           }
-          const target = toPrivate ? element.getElementsByTagNameNS(sldNs, 'SLDAttributes')[0] : element;
+          const target = toPrivate ? parent.getElementsByTagNameNS(sldNs, 'TextLayout')[0] : element;
           for (const [key, value] of Object.entries(values)) {
             expect(target.getAttributeNS(targetNs, key), key)
               .to.equal(index === 1 && !overwrite ? key === 'lx' ? '99' : null : value);
           }
+          expect(element.getElementsByTagNameNS(sclNs, 'Private')).to.have.lengthOf(0);
+          expect(parent.getElementsByTagNameNS(vendorNs, 'Metadata')[0].textContent).to.equal('keep');
+          expect(parent.getElementsByTagNameNS(sldNs, 'SLDAttributes')[0].getAttributeNS(sldNs, toPrivate ? 'y' : 'x'))
+            .to.equal(toPrivate ? '7' : '2');
         });
         expect(copy(doc, overwrite).edits).to.deep.equal([]);
         if (overwrite) {
@@ -169,6 +177,62 @@ Second line<vendor:Span> preserved</vendor:Span>${record}</s:Text>`;
       });
     }
   }
+
+  it('creates a parent Private when copying Text alone', () => {
+    const doc = parse('<Substation name="S"><Text old:lx="2" old:ly="3">Label</Text></Substation>');
+    const plan = copySldV1Plan(doc);
+    expect(plan.issues).to.deep.equal([]);
+    new XMLEditor().commit(plan.edits);
+    const owner = doc.querySelector('Substation')!;
+    expect(Array.from(owner.children).map(child => child.localName)).to.deep.equal(['Text', 'Private']);
+    expect(owner.getElementsByTagNameNS(sldNs, 'TextLayout')[0].getAttributeNS(sldNs, 'lx')).to.equal('2');
+  });
+
+  it('copies parent and Text layouts into the same existing Private in one transaction', () => {
+    const doc = parse(`<Substation name="S" old:x="10"><Text old:lx="2">Label</Text>
+      <Private type="${privType}"><new:SLDAttributes vendor:keep="yes"/>
+        <vendor:Metadata>keep</vendor:Metadata></Private></Substation>`);
+    const before = doc.documentElement.cloneNode(true);
+    const plan = copySldV1Plan(doc);
+    expect(plan.issues).to.deep.equal([]);
+    expect(plan.copied).to.equal(2);
+    const editor = new XMLEditor();
+    editor.commit(plan.edits);
+    const privates = doc.querySelectorAll(`Private[type="${privType}"]`);
+    expect(privates).to.have.lengthOf(1);
+    expect(privates[0].getElementsByTagNameNS(sldNs, 'SLDAttributes')[0].getAttributeNS(sldNs, 'x')).to.equal('10');
+    expect(privates[0].getElementsByTagNameNS(sldNs, 'SLDAttributes')[0].getAttributeNS(vendorNs, 'keep')).to.equal('yes');
+    expect(privates[0].getElementsByTagNameNS(sldNs, 'TextLayout')[0].getAttributeNS(sldNs, 'lx')).to.equal('2');
+    expect(privates[0].getElementsByTagNameNS(vendorNs, 'Metadata')[0].textContent).to.equal('keep');
+    const after = doc.documentElement.cloneNode(true);
+    editor.undo();
+    expect(doc.documentElement.isEqualNode(before)).to.equal(true);
+    editor.redo();
+    expect(doc.documentElement.isEqualNode(after)).to.equal(true);
+  });
+
+  it('blocks ambiguous Text ownership and duplicate layouts without partial edits', () => {
+    const cases: Array<[string, typeof copySldV1Plan]> = [
+      [`<Substation name="S"><Text old:lx="1">A</Text><Text>B</Text></Substation>`, copySldV1Plan],
+      [`<Substation name="S"><Text old:lx="1">A</Text><Private type="${privType}">
+        <new:TextLayout/><new:TextLayout/></Private></Substation>`, copySldV1Plan],
+      [`<Substation name="S"><Private type="${privType}"><new:TextLayout new:lx="1"/></Private></Substation>`, copySldPrivatePlan],
+      [`<Substation name="S"><Text>A</Text><Text>B</Text><Private type="${privType}">
+        <new:TextLayout new:lx="1"/></Private></Substation>`, copySldPrivatePlan],
+      [`<Substation name="S"><Text>A</Text><Private type="${privType}">
+        <new:TextLayout new:lx="1"/><new:TextLayout new:lx="2"/></Private></Substation>`, copySldPrivatePlan],
+      [`<Substation name="S"><Text>A<Private type="${privType}">
+        <new:SLDAttributes new:lx="1"/></Private></Text></Substation>`, copySldPrivatePlan],
+    ];
+    for (const [body, copy] of cases) {
+      const doc = parse(body);
+      const before = serialize(doc);
+      const plan = copy(doc, true);
+      expect(plan.issues.length, body).to.be.greaterThan(0);
+      expect(plan.edits).to.deep.equal([]);
+      expect(serialize(doc)).to.equal(before);
+    }
+  });
 });
 
 describe('SLD Private to SLDv1', () => {

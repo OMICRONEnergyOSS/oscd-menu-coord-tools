@@ -100,6 +100,30 @@ describe('SXY position copying', () => {
     expect(exported.copied).to.equal(0);
   });
 
+  it('preserves TextLayout when importing positions and reports it as unconverted on export', () => {
+    const doc = parse(`<Substation name="S" xy:x="2" xy:y="3">
+      <Text>Label</Text><Private type="${privType}">
+        <n:TextLayout n:lx="4" n:ly="5" n:color="red"/>
+      </Private></Substation>`);
+    const imported = copySxyPlan(doc);
+    expect(imported.issues).to.deep.equal([]);
+    const before = doc.documentElement.cloneNode(true);
+    const editor = new XMLEditor();
+    editor.commit(imported.edits);
+    const textLayout = doc.getElementsByTagNameNS(sldNs, 'TextLayout')[0];
+    expect(textLayout.getAttributeNS(sldNs, 'lx')).to.equal('4');
+    expect(textLayout.getAttributeNS(sldNs, 'color')).to.equal('red');
+    const exported = copyPrivateToSxyPlan(doc);
+    expect(exported.issues).to.deep.equal([]);
+    expect(exported.notes.join(' ')).to.contain('labels');
+    expect(textLayout.getAttributeNS(sldNs, 'ly')).to.equal('5');
+    const after = doc.documentElement.cloneNode(true);
+    editor.undo();
+    expect(doc.documentElement.isEqualNode(before)).to.equal(true);
+    editor.redo();
+    expect(doc.documentElement.isEqualNode(after)).to.equal(true);
+  });
+
   it('supports prefixed SCL and collision-free namespace declarations, retaining valid Private ordering', () => {
     const doc = new DOMParser().parseFromString(
       `<s:SCL xmlns:s="${sclNs}" xmlns:p="${sxyNs}" xmlns:eosld="urn:vendor">

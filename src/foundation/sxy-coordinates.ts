@@ -228,7 +228,8 @@ export function copySxyPlan(doc: XMLDocument, overwrite = false): CopyPlan {
     if (!destination.changed) {
       continue;
     }
-    const reference = destination.original?.nextSibling ?? privateReference(owner);
+    const reference = destination.original !== undefined
+      ? destination.original.nextSibling : privateReference(owner);
     if (destination.original !== undefined) {
       edits.push({ node: destination.original });
     }

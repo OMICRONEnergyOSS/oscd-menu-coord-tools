@@ -530,21 +530,19 @@ function documentWithConflicts(toPrivate: boolean): XMLDocument {
   });
 
   if (toPrivate) {
-    it('shows Text compatibility information separately even after introduction dismissal, but not for a matching rerun', async () => {
+    it('copies TextLayout without the obsolete schema warning and reports a matching rerun', async () => {
       await dismissIntroduction();
       await clickAction('Overwrite existing');
       await notification();
       element.doc = new DOMParser().parseFromString(
         `<SCL xmlns="http://www.iec.ch/61850/2003/SCL" xmlns:old="${sldV1Ns}">
-          <Substation name="S"><Text old:x="1" old:y="2">Annotation</Text></Substation>
+          <Substation name="S"><Text old:lx="1" old:ly="2">Annotation</Text></Substation>
         </SCL>`, 'application/xml',
       );
       await element.run();
-      expect(dialog.open).to.equal(true);
-      expect(element.shadowRoot?.querySelector('[role="note"]')?.textContent).to.contain('violates the SCL schema');
-      expect(element.shadowRoot?.querySelector('oscd-checkbox') === null).to.equal(true);
-      await clickAction('Copy');
       await notification();
+      expect(element.doc.getElementsByTagNameNS(sldNs, 'TextLayout')[0].getAttributeNS(sldNs, 'lx')).to.equal('1');
+      expect(element.doc.querySelector('Text > Private')).to.equal(null);
       await element.run();
       expect(dialog.open).to.equal(true);
       expect(element.shadowRoot?.textContent).to.contain('already matches');
